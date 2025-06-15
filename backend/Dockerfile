@@ -1,10 +1,13 @@
 # Single stage build
-FROM golang:1.22.6-alpine3.19
+FROM golang:1.24.2-bookworm
 
 WORKDIR /app
 
 # Install build dependencies
-RUN apk add --no-cache bash gcc musl-dev
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    bash \
+    gcc \
+    && rm -rf /var/lib/apt/lists/*
 
 # Copy go mod and sum files
 COPY go.mod go.sum ./

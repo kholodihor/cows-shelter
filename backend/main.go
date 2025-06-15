@@ -40,6 +40,13 @@ func main() {
 
 	config.Connect()
 
+	// Initialize MinIO client
+	if err := config.InitMinio(); err != nil {
+		log.Printf("Warning: Failed to initialize MinIO client: %v\n", err)
+	} else {
+		log.Println("MinIO client initialized successfully")
+	}
+
 	// Add CORS middleware
 	router.Use(func(c *gin.Context) {
 		origin := c.Request.Header.Get("Origin")

@@ -1,4 +1,4 @@
-version: "3.8"
+
 
 services:
   app:
@@ -13,11 +13,15 @@ services:
       - DB_USER=postgres
       - DB_PASSWORD=postgres
       - DB_NAME=cows_shelter
-      - CLOUDINARY_CLOUD_NAME=${CLOUDINARY_CLOUD_NAME}
-      - CLOUDINARY_API_KEY=${CLOUDINARY_API_KEY}
-      - CLOUDINARY_API_SECRET=${CLOUDINARY_API_SECRET}
+      # MinIO environment variables
+      - MINIO_ENDPOINT=minio:9000
+      - MINIO_ACCESS_KEY=${MINIO_ACCESS_KEY:-minioadmin}
+      - MINIO_SECRET_KEY=${MINIO_SECRET_KEY:-minioadmin}
+      - MINIO_BUCKET=${MINIO_BUCKET:-cows-shelter}
+      - MINIO_USE_SSL=false
     depends_on:
       - postgres
+      - minio
     volumes:
       - .:/app
     container_name: cows-shelter-api
@@ -35,5 +39,24 @@ services:
       - postgres_data:/var/lib/postgresql/data
     container_name: cows-shelter-db
 
+  minio:
+    image: minio/minio:latest
+    ports:
+      - "9000:9000"  # API
+      - "9001:9001"  # Console
+    environment:
+      - MINIO_ROOT_USER=${MINIO_ACCESS_KEY:-minioadmin}
+      - MINIO_ROOT_PASSWORD=${MINIO_SECRET_KEY:-minioadmin}
+    volumes:
+      - minio_data:/data
+    command: server /data --console-address ":9001"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 20s
+      retries: 3
+    container_name: cows-shelter-minio
+
 volumes:
   postgres_data:
+  minio_data:

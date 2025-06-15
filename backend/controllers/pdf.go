@@ -7,6 +7,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/kholodihor/cows-shelter-backend/config"
 	"github.com/kholodihor/cows-shelter-backend/models"
+	"github.com/kholodihor/cows-shelter-backend/services"
 )
 
 // GetPdfs - Retrieve all PDFs
@@ -30,21 +31,42 @@ func GetPdfByID(c *gin.Context) {
 
 // CreatePdf - Create a new PDF entry
 func CreatePdf(c *gin.Context) {
-	var requestBody struct {
-		Title       string `json:"title" binding:"required"`
-		DocumentUrl string `json:"document_url" binding:"required,url"`
+	// Get the title from form data
+	title := c.PostForm("title")
+	if title == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Title is required"})
+		return
 	}
 
-	// Validate the request body
-	if err := c.ShouldBindJSON(&requestBody); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid input: " + err.Error()})
+	// Check if a document file was uploaded
+	fileHeader, err := c.FormFile("document")
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Document file is required"})
+		return
+	}
+
+	// Initialize MinIO service
+	minioService, err := services.NewMinioService()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to initialize MinIO service"})
+		return
+	}
+
+	// Upload the document to MinIO
+	documentURL, err := minioService.UploadFile(
+		c.Request.Context(),
+		fileHeader,
+		"documents",
+	)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to upload document: " + err.Error()})
 		return
 	}
 
 	// Create the new PDF entry
 	pdf := models.Pdf{
-		Title:       requestBody.Title,
-		DocumentUrl: requestBody.DocumentUrl,
+		Title:       title,
+		DocumentUrl: documentURL,
 		CreatedAt:   time.Now(),
 	}
 
@@ -72,7 +94,22 @@ func DeletePdf(c *gin.Context) {
 		return
 	}
 
-	// Delete the PDF
+	// Initialize MinIO service
+	minioService, err := services.NewMinioService()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to initialize MinIO service"})
+		return
+	}
+
+	// Delete the document from MinIO if it exists
+	if pdf.DocumentUrl != "" {
+		objectName := minioService.ExtractObjectName(pdf.DocumentUrl)
+		if objectName != "" {
+			_ = minioService.DeleteFile(c.Request.Context(), objectName)
+		}
+	}
+
+	// Delete the PDF from the database
 	config.DB.Delete(&pdf)
 	c.JSON(http.StatusOK, gin.H{"message": "PDF deleted successfully"})
 }

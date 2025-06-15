@@ -116,18 +116,18 @@ func CreateExcursion(c *gin.Context) {
 	if err == nil {
 		defer file.Close()
 
-		// Initialize Cloudinary service
-		cloudinaryService, err := services.NewCloudinaryService()
+		// Initialize MinIO service
+		minioService, err := services.NewMinioService()
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to initialize Cloudinary service"})
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to initialize MinIO service"})
 			return
 		}
 
-		// Upload the image to Cloudinary
-		imageURL, err := cloudinaryService.UploadFile(
+		// Upload the image to MinIO
+		imageURL, err := minioService.UploadFile(
 			c.Request.Context(),
 			fileHeader,
-			"cows-shelter/excursions",
+			"excursions",
 		)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to upload image: " + err.Error()})
@@ -202,10 +202,10 @@ func UpdateExcursion(c *gin.Context) {
 		excursion.AmountOfPersons = amountOfPersons
 	}
 
-	// Initialize Cloudinary service
-	cloudinaryService, err := services.NewCloudinaryService()
+	// Initialize MinIO service
+	minioService, err := services.NewMinioService()
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to initialize Cloudinary service"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to initialize MinIO service"})
 		return
 	}
 
@@ -214,22 +214,22 @@ func UpdateExcursion(c *gin.Context) {
 	if err == nil {
 		defer file.Close()
 
-		// Upload the new image to Cloudinary
-		newImageURL, err := cloudinaryService.UploadFile(
+		// Upload the new image to MinIO
+		newImageURL, err := minioService.UploadFile(
 			c.Request.Context(),
 			fileHeader,
-			"cows-shelter/excursions",
+			"excursions",
 		)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to upload new image: " + err.Error()})
 			return
 		}
 
-		// Delete the old image from Cloudinary if it exists
+		// Delete the old image from MinIO if it exists
 		if excursion.ImageUrl != "" {
-			oldPublicID := cloudinaryService.ExtractPublicID(excursion.ImageUrl)
-			if oldPublicID != "" {
-				_ = cloudinaryService.DeleteFile(c.Request.Context(), oldPublicID)
+			oldObjectName := minioService.ExtractObjectName(excursion.ImageUrl)
+			if oldObjectName != "" {
+				_ = minioService.DeleteFile(c.Request.Context(), oldObjectName)
 			}
 		}
 
@@ -264,19 +264,19 @@ func DeleteExcursion(c *gin.Context) {
 		return
 	}
 
-	// Initialize Cloudinary service
-	cloudinaryService, err := services.NewCloudinaryService()
+	// Initialize MinIO service
+	minioService, err := services.NewMinioService()
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to initialize Cloudinary service"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to initialize MinIO service"})
 		return
 	}
 
-	// Delete the image from Cloudinary if it exists
+	// Delete the image from MinIO if it exists
 	if excursion.ImageUrl != "" {
-		// Extract the public ID from the URL
-		publicID := cloudinaryService.ExtractPublicID(excursion.ImageUrl)
-		if publicID != "" {
-			_ = cloudinaryService.DeleteFile(c.Request.Context(), publicID)
+		// Extract the object name from the URL
+		objectName := minioService.ExtractObjectName(excursion.ImageUrl)
+		if objectName != "" {
+			_ = minioService.DeleteFile(c.Request.Context(), objectName)
 		}
 	}
 

@@ -3,13 +3,11 @@ package controllers
 import (
 	"fmt"
 	"net/http"
-	"os"
-	"path/filepath"
-	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/kholodihor/cows-shelter-backend/config"
 	"github.com/kholodihor/cows-shelter-backend/models"
+	"github.com/kholodihor/cows-shelter-backend/services"
 )
 
 func GetAllPartners(c *gin.Context) {
@@ -67,12 +65,44 @@ func GetPartnerByID(c *gin.Context) {
 }
 
 func CreatePartner(c *gin.Context) {
-	var partner models.Partner
+	// Parse form data
+	name := c.PostForm("name")
+	link := c.PostForm("link")
 
-	// Bind JSON to the partner model, which includes other details
-	if err := c.ShouldBindJSON(&partner); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid input: " + err.Error()})
+	if name == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Name is required"})
 		return
+	}
+
+	// Initialize partner with form data
+	partner := models.Partner{
+		Name: name,
+		Link: link,
+	}
+
+	// Check if a logo file was uploaded
+	fileHeader, err := c.FormFile("logo")
+	if err == nil {
+		// Initialize MinIO service
+		minioService, err := services.NewMinioService()
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to initialize MinIO service"})
+			return
+		}
+
+		// Upload the logo to MinIO
+		imageURL, err := minioService.UploadFile(
+			c.Request.Context(),
+			fileHeader,
+			"partners",
+		)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to upload logo: " + err.Error()})
+			return
+		}
+
+		// Set the logo URL in the partner model
+		partner.Logo = imageURL
 	}
 
 	// Save the partner entry to the database
@@ -85,7 +115,7 @@ func CreatePartner(c *gin.Context) {
 		"id":   partner.ID,
 		"name": partner.Name,
 		"link": partner.Link,
-		"logo": partner.Logo, // This will be set after the image is uploaded
+		"logo": partner.Logo,
 	})
 }
 
@@ -96,31 +126,46 @@ func UpdatePartner(c *gin.Context) {
 		return
 	}
 
+	// Update fields from form data
+	if name := c.PostForm("name"); name != "" {
+		partner.Name = name
+	}
+
+	if link := c.PostForm("link"); link != "" {
+		partner.Link = link
+	}
+
 	// Parse the file if a new logo is uploaded
-	file, err := c.FormFile("logo")
+	fileHeader, err := c.FormFile("logo")
 	if err == nil {
-		// Save the new file
-		uploadDir := "./uploads/partners"
-		filename := time.Now().Format("20060102150405") + "_" + filepath.Base(file.Filename)
-		filepath := filepath.Join(uploadDir, filename)
-		if err := c.SaveUploadedFile(file, filepath); err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Could not save file"})
+		// Initialize MinIO service
+		minioService, err := services.NewMinioService()
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to initialize MinIO service"})
 			return
 		}
 
-		// Optionally, delete the old logo file
-		if err := os.Remove("." + partner.Logo); err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete old logo"})
+		// Delete the old logo from MinIO if it exists
+		if partner.Logo != "" {
+			oldObjectName := minioService.ExtractObjectName(partner.Logo)
+			if oldObjectName != "" {
+				_ = minioService.DeleteFile(c.Request.Context(), oldObjectName)
+			}
+		}
+
+		// Upload the new logo to MinIO
+		imageURL, err := minioService.UploadFile(
+			c.Request.Context(),
+			fileHeader,
+			"partners",
+		)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to upload new logo: " + err.Error()})
 			return
 		}
 
 		// Set the new logo URL
-		partner.Logo = "/uploads/partners/" + filename
-	}
-
-	if err := c.ShouldBind(&partner); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid input"})
-		return
+		partner.Logo = imageURL
 	}
 
 	if err := config.DB.Save(&partner).Error; err != nil {
@@ -138,14 +183,24 @@ func DeletePartner(c *gin.Context) {
 		return
 	}
 
-	if err := config.DB.Delete(&partner).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete partner"})
+	// Initialize MinIO service
+	minioService, err := services.NewMinioService()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to initialize MinIO service"})
 		return
 	}
 
-	// Optionally, delete the logo file from the server
-	if err := os.Remove("." + partner.Logo); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete logo file"})
+	// Delete the logo from MinIO if it exists
+	if partner.Logo != "" {
+		objectName := minioService.ExtractObjectName(partner.Logo)
+		if objectName != "" {
+			_ = minioService.DeleteFile(c.Request.Context(), objectName)
+		}
+	}
+
+	// Delete the partner from the database
+	if err := config.DB.Delete(&partner).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete partner"})
 		return
 	}
 

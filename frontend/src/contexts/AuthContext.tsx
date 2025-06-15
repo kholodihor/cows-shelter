@@ -1,6 +1,7 @@
 import { createContext, useContext, ReactNode, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { login as loginApi, LoginCredentials } from '@/services/authService';
+import { login as loginApi } from '@/services/authService';
+import { LoginCredentials } from '@/types/auth';
 
 type User = {
   email: string;
@@ -36,7 +37,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const login = async (credentials: LoginCredentials) => {
     try {
       const response = await loginApi(credentials);
-      const { token, email } = response;
+      const { token, user } = response;
+      const { email } = user;
       
       localStorage.setItem('token', token);
       localStorage.setItem('userEmail', email);
