@@ -7,6 +7,7 @@ WORKDIR /app
 RUN apt-get update && apt-get install -y --no-install-recommends \
     bash \
     gcc \
+    netcat-openbsd \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy go mod and sum files
@@ -18,16 +19,22 @@ RUN go mod download
 # Copy the source code
 COPY . .
 
-# Build the application
-RUN CGO_ENABLED=0 GOOS=linux go build -o /usr/local/bin/app .
+# Update go.mod and go.sum and build the application
+RUN go mod tidy && \
+    CGO_ENABLED=0 GOOS=linux go build -o /usr/local/bin/app .
+
+# Make scripts executable
+RUN chmod +x /app/entrypoint.sh && \
+    chmod +x /app/migrate.sh
 
 # Install runtime dependencies
-RUN apk add --no-cache \
+RUN apt-get update && apt-get install -y --no-install-recommends \
     bash \
     dos2unix \
     && dos2unix /app/entrypoint.sh \
     && chmod +x /app/entrypoint.sh \
-    && chmod +x /usr/local/bin/app
+    && chmod +x /usr/local/bin/app \
+    && rm -rf /var/lib/apt/lists/*
 
 # Expose port 8080
 EXPOSE 8080

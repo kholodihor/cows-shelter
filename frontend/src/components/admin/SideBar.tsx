@@ -36,11 +36,11 @@ const links = [
     path: 'contacts',
     icon: 'contacts'
   },
-  {
-    name: 'Зміна пароля',
-    path: 'newpaswword',
-    icon: 'password'
-  }
+  // {
+  //   name: 'Зміна пароля',
+  //   path: 'newpaswword',
+  //   icon: 'password'
+  // }
 ];
 
 const SideBar = () => {

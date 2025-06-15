@@ -19,16 +19,13 @@ const AddContacts = () => {
   const [isProcessing, setIsProcessing] = useState(false);
   const {
     handleSubmit,
-    watch,
     control,
     formState: { errors }
   } = useForm<ContactsFormInput>({
     resolver: zodResolver(contactsValidation),
     mode: 'onChange',
-    defaultValues: { email: '', phone: '' }
+    defaultValues: { name: '', email: '', phone: '' }
   });
-
-  const currentValues = watch();
 
   const onSubmit: SubmitHandler<ContactsFormInput> = async (
     values: ContactsFormInput
@@ -55,32 +52,50 @@ const AddContacts = () => {
           autoComplete="off"
           className="flex flex-1 flex-col gap-4 p-4 text-base"
         >
-          <Controller
-            name={'email'}
-            control={control}
-            render={({ field }) => (
-              <TextInput
-                {...field}
-                errorText={errors.email?.message}
-                placeholder={'Введіть електронну пошту'}
-                title={'Електронна пошта'}
-                value={currentValues.email}
+          <div className="flex w-full flex-col gap-8">
+            <div>
+              <Controller
+                control={control}
+                name="name"
+                render={({ field }) => (
+                  <TextInput
+                    {...field}
+                    errorText={errors.name?.message}
+                    placeholder="Введіть ім'я"
+                    title="Ім'я"
+                  />
+                )}
               />
-            )}
-          />
-          <Controller
-            name={'phone'}
-            control={control}
-            render={({ field }) => (
-              <TextInput
-                {...field}
-                errorText={errors.phone?.message}
-                placeholder={'Введіть номер телефону'}
-                title={'Номер телефону'}
-                value={currentValues.phone}
+            </div>
+            <div>
+              <Controller
+                control={control}
+                name="email"
+                render={({ field }) => (
+                  <TextInput
+                    {...field}
+                    errorText={errors.email?.message}
+                    placeholder="Введіть електронну пошту"
+                    title="Електронна пошта"
+                  />
+                )}
               />
-            )}
-          />
+            </div>
+            <div>
+              <Controller
+                control={control}
+                name="phone"
+                render={({ field }) => (
+                  <TextInput
+                    {...field}
+                    errorText={errors.phone?.message}
+                    placeholder="Введіть номер телефону"
+                    title="Номер телефону"
+                  />
+                )}
+              />
+            </div>
+          </div>
           <p className="text-[17px] text-disabled">{`Додати нові контакти`}</p>
           <div className="flex items-center gap-4">
             <button className=" w-[13.5rem] bg-gray-200 px-6 py-2 transition-all hover:bg-accent">

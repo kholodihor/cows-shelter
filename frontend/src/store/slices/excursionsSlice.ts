@@ -7,6 +7,7 @@ import {
 } from '@reduxjs/toolkit';
 import { AxiosError } from 'axios';
 import axiosInstance from '@/utils/axios';
+import { transformMinioUrlsInData } from '@/utils/minioUrlHelper';
 
 export type Excursion = {
   id: string;
@@ -42,13 +43,24 @@ const initialState: ExcursionsState = {
   }
 };
 
+// Helper function to convert file to base64
+const fileToBase64 = (file: File): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = (error) => reject(error);
+  });
+};
+
 export const fetchExcursion = createAsyncThunk(
   'excursions/fetchExcursion',
   async () => {
     try {
       const response = await axiosInstance.get<Excursion[]>('/excursions');
       const data = response.data;
-      return data;
+      // Transform MinIO URLs in the response data
+      return transformMinioUrlsInData(Array.isArray(data) ? data : []);
     } catch (error) {
       const err = error as AxiosError;
       return err.message;
@@ -62,7 +74,8 @@ export const fetchExcursionById = createAsyncThunk(
     try {
       const response = await axiosInstance.get<Excursion>(`/excursions/${id}`);
       const data = response.data;
-      return data;
+      // Transform MinIO URLs in the response data
+      return transformMinioUrlsInData(data);
     } catch (error) {
       const err = error as AxiosError;
       return err.message;
@@ -78,7 +91,10 @@ export const fetchExcursionsWithPagination = createAsyncThunk(
         `/excursions/pagination?page=${query.page}&limit=${query.limit}`
       );
       const data = response.data;
-      console.log(data);
+      // Transform MinIO URLs in the response data
+      if (data.excursions) {
+        data.excursions = transformMinioUrlsInData(data.excursions);
+      }
       return data;
     } catch (error) {
       const err = error as AxiosError;
@@ -101,66 +117,131 @@ export const removeExcursion = createAsyncThunk(
 
 export const addNewExcursion = createAsyncThunk(
   'excursions/addNewExcursion',
-  async (values: ExcursionsFormInput) => {
+  async (values: ExcursionsFormInput, { rejectWithValue }) => {
     try {
-      const file = values.image[0];
-      const formData = new FormData();
-      formData.append('image', file);
-      const { data } = await axiosInstance.post('/upload-image', formData);
-      const newPost = {
-        title_ua: values.titleUa,
-        title_en: values.titleEn,
-        description_ua: values.descriptionUa,
-        description_en: values.descriptionEn,
+      // Convert image to base64 if it exists
+      let imageData = '';
+
+      if (values.image && values.image[0] && values.image[0] instanceof File) {
+        try {
+          const file = values.image[0];
+          // Check if file size is reasonable (e.g., less than 5MB)
+          const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+          if (file.size > MAX_FILE_SIZE) {
+            return rejectWithValue('Image size should be less than 5MB');
+          }
+
+          imageData = await fileToBase64(file);
+        } catch (uploadError) {
+          console.error('Image processing failed:', uploadError);
+          return rejectWithValue('Failed to process image');
+        }
+      } else {
+        return rejectWithValue('Image is required');
+      }
+
+      // Prepare the excursion data with base64 image
+      const excursionData = {
+        title_ua: values.titleUa || '',
+        title_en: values.titleEn || values.titleUa || '',
+        description_ua: values.descriptionUa || '',
+        description_en: values.descriptionEn || values.descriptionUa || '',
         amount_of_persons: values.visitorsNumber,
         time_from: values.timeFrom,
         time_to: values.timeTill,
-        image_url: data.image_url
+        image_data: imageData
       };
-      await axiosInstance.post('/excursions', newPost);
+
+      // Create the excursion with JSON data
+      const response = await axiosInstance.post<Excursion>('/excursions', excursionData, {
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (!response.data) {
+        throw new Error('No data received from server');
+      }
+
+      return response.data;
     } catch (error) {
       const err = error as AxiosError;
-      return err.message;
+      console.error('Error adding excursion:', err.response?.data || err.message);
+      return rejectWithValue(err.response?.data || 'Failed to add excursion');
     }
   }
 );
 
 export const editExcursion = createAsyncThunk(
   'excursions/editExcursion',
-  async (excursionsData: { id?: string; values: ExcursionsFormInput }) => {
+  async (excursionsData: { id?: string; values: ExcursionsFormInput }, { rejectWithValue }) => {
     try {
-      if (excursionsData.values.image[0].size > 0) {
-        const file = excursionsData.values.image[0];
-        const formData = new FormData();
-        formData.append('image', file);
-        const { data } = await axiosInstance.post('/upload-image', formData);
-        const newExcursion = {
-          title_ua: excursionsData.values.titleUa,
-          title_en: excursionsData.values.titleEn,
-          description_ua: excursionsData.values.descriptionUa,
-          description_en: excursionsData.values.descriptionEn,
-          amount_of_persons: excursionsData.values.visitorsNumber,
-          time_from: excursionsData.values.timeFrom,
-          time_to: excursionsData.values.timeTill,
-          image_url: data.image_url
-        };
-        await axiosInstance.patch(`/excursions/${excursionsData.id}`, newExcursion);
-      } else {
-        const newExcursion = {
-          title_ua: excursionsData.values.titleUa,
-          title_en: excursionsData.values.titleEn,
-          description_ua: excursionsData.values.descriptionUa,
-          description_en: excursionsData.values.descriptionEn,
-          amount_of_persons: excursionsData.values.visitorsNumber,
-          time_from: excursionsData.values.timeFrom,
-          time_to: excursionsData.values.timeTill,
-          image_url: excursionsData.values.image[0].name
-        };
-        await axiosInstance.patch(`/excursions/${excursionsData.id}`, newExcursion);
+      if (!excursionsData.id) {
+        throw new Error('Excursion ID is required');
       }
+
+      // Convert image to base64 if a new image is provided
+      let imageData = '';
+
+      if (excursionsData.values.image?.[0] && excursionsData.values.image[0] instanceof File) {
+        // Check if this is a real file with actual content (not a dummy file)
+        // Dummy files created in the edit form have size 0
+        if (excursionsData.values.image[0].size > 0) {
+          try {
+            const file = excursionsData.values.image[0];
+            // Check if file size is reasonable (e.g., less than 5MB)
+            const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+            if (file.size > MAX_FILE_SIZE) {
+              return rejectWithValue('Image size should be less than 5MB');
+            }
+
+            imageData = await fileToBase64(file);
+          } catch (uploadError) {
+            console.error('Image processing failed:', uploadError);
+            return rejectWithValue('Failed to process image');
+          }
+        }
+      }
+
+      // Prepare the update data with the same structure as addNewExcursion
+      const updateData: Record<string, any> = {
+        title_ua: excursionsData.values.titleUa || '',
+        title_en: excursionsData.values.titleEn || excursionsData.values.titleUa || '',
+        description_ua: excursionsData.values.descriptionUa || '',
+        description_en: excursionsData.values.descriptionEn || excursionsData.values.descriptionUa || '',
+        amount_of_persons: excursionsData.values.visitorsNumber,
+        time_from: excursionsData.values.timeFrom,
+        time_to: excursionsData.values.timeTill
+      };
+
+      // Only include image_data if a new image was provided
+      // This ensures we keep the existing image URL if no new image is uploaded
+      if (imageData) {
+        updateData.image_data = imageData;
+      }
+
+      console.log('Updating excursion with data:', updateData);
+
+      // Update the excursion with JSON data
+      const response = await axiosInstance.patch<Excursion>(
+        `/excursions/${excursionsData.id}`,
+        updateData,
+        {
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        }
+      );
+
+      if (!response.data) {
+        throw new Error('No data received from server');
+      }
+
+      return response.data;
     } catch (error) {
       const err = error as AxiosError;
-      return err.message;
+      console.error('Error updating excursion:', err.response?.data || err.message);
+      return rejectWithValue(err.response?.data || 'Failed to update excursion');
     }
   }
 );

@@ -57,7 +57,7 @@ const Gallery = () => {
             className="relative h-[180px] w-[288px] text-left"
           >
             <img
-              src={createImgUrl(image.image_url)}
+              src={image.image_url}
               alt={'image'}
               className="h-full w-full object-cover"
             />

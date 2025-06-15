@@ -64,7 +64,7 @@ const Excursions = () => {
               className="relative h-[180px] w-[288px] text-left"
             >
               <img
-                src={createImgUrl(excursion.image_url)}
+                src={excursion.image_url}
                 alt={excursion.title_ua}
                 className="h-full w-full object-cover"
               />

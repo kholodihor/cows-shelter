@@ -99,7 +99,7 @@ const Footer = () => {
           <li>
             <div className="flex flex-col gap-3">
               <h3 className="title-text"> {t('footer:documents')} </h3>
-              <ul className="flex flex-col gap-2">
+              {/* <ul className="flex flex-col gap-2">
                 {publicDocuments && Array.isArray(publicDocuments) ? (
                   publicDocuments.map((document) => (
                     <li key={document.id}>
@@ -118,7 +118,7 @@ const Footer = () => {
                 ) : (
                   <p>Сервер не відповідає</p>
                 )}
-              </ul>
+              </ul> */}
             </div>
           </li>
           {/* contacts */}
@@ -247,7 +247,7 @@ const Footer = () => {
             <ul className="flex flex-col gap-6">
               <li className="flex flex-col gap-3">
                 <h3 className="title-text"> {t('footer:documents')} </h3>
-                <ul className="flex flex-col gap-2">
+                {/* <ul className="flex flex-col gap-2">
                   {publicDocuments && Array.isArray(publicDocuments) ? (
                     publicDocuments.map((document) => (
                       <li key={document.id}>
@@ -266,7 +266,7 @@ const Footer = () => {
                   ) : (
                     <p>Сервер не відповідає</p>
                   )}
-                </ul>
+                </ul> */}
               </li>
               <li className="flex flex-col gap-3">
                 <h3 className="title-text">{t('footer:contacts')}</h3>
@@ -330,7 +330,7 @@ const Footer = () => {
           <li className="hidden lg:block">
             <div className="flex flex-col gap-3">
               <h3 className="title-text"> {t('footer:documents')} </h3>
-              <ul className="flex flex-col gap-2">
+              {/* <ul className="flex flex-col gap-2">
                 {publicDocuments && Array.isArray(publicDocuments) ? (
                   publicDocuments.map((document) => (
                     <li key={document.id}>
@@ -349,7 +349,7 @@ const Footer = () => {
                 ) : (
                   <p>Сервер не відповідає</p>
                 )}
-              </ul>
+              </ul> */}
             </div>
           </li>
 

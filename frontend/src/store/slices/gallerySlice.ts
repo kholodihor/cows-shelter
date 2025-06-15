@@ -7,6 +7,7 @@ import {
 } from '@reduxjs/toolkit';
 import { AxiosError } from 'axios';
 import axiosInstance from '@/utils/axios';
+import { transformMinioUrlsInData } from '@/utils/minioUrlHelper';
 
 export type Image = {
   id: string;
@@ -39,7 +40,11 @@ export const fetchImages = createAsyncThunk('gallery/fetchImages', async (_, { r
   try {
     const response = await axiosInstance.get<Image[]>('/gallery');
     const data = response.data;
-    return Array.isArray(data) ? data : [];
+    console.log('Original gallery data:', data);
+    // Transform MinIO URLs in the response data
+    const transformedData = transformMinioUrlsInData(Array.isArray(data) ? data : []);
+    console.log('Transformed gallery data:', transformedData);
+    return transformedData;
   } catch (error) {
     const err = error as AxiosError;
     console.error('Failed to fetch images:', err.message);
@@ -52,7 +57,9 @@ export const fetchImageById = createAsyncThunk(
   async (id: string, { rejectWithValue }) => {
     try {
       const response = await axiosInstance.get<Image>(`/gallery/${id}`);
-      return response.data;
+      // Transform MinIO URLs in the response data
+      const transformedData = transformMinioUrlsInData(response.data);
+      return transformedData;
     } catch (error) {
       const err = error as AxiosError;
       console.error(`Failed to fetch image with id ${id}:`, err.message);
@@ -68,7 +75,12 @@ export const fetchImagesWithPagination = createAsyncThunk(
       const response = await axiosInstance.get<ResponseWithPagination>(
         `/gallery/pagination?page=${query.page}&limit=${query.limit}`
       );
-      return response.data || { images: [], totalLength: 0 };
+      // Transform MinIO URLs in the response data
+      const data = response.data || { images: [], totalLength: 0 };
+      if (data.images) {
+        data.images = transformMinioUrlsInData(data.images);
+      }
+      return data;
     } catch (error) {
       const err = error as AxiosError;
       console.error('Failed to fetch paginated images:', err.message);
@@ -91,8 +103,8 @@ export const removeImage = createAsyncThunk(
   }
 );
 
-
-
+// Note: These helper functions are now used in the thunks
+// They're kept here for reference and potential future use
 // Helper function to convert file to base64
 const fileToBase64 = (file: File): Promise<string> => {
   return new Promise((resolve, reject) => {
@@ -107,39 +119,24 @@ export const addNewImage = createAsyncThunk(
   'gallery/addNewImage',
   async (values: NewsFormInput, { rejectWithValue }) => {
     try {
-      // Convert image to base64 if it exists
-      let imageData = '';
-      
-      if (values.image && values.image[0] && values.image[0] instanceof File) {
-        try {
-          const file = values.image[0];
-          // Check if file size is reasonable (e.g., less than 5MB)
-          const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
-          if (file.size > MAX_FILE_SIZE) {
-            return rejectWithValue('Image size should be less than 5MB');
-          }
-          
-          imageData = await fileToBase64(file);
-        } catch (uploadError) {
-          console.error('Image processing failed:', uploadError);
-          return rejectWithValue('Failed to process image');
-        }
+      if (!values.image || !values.image[0] || !(values.image[0] instanceof File)) {
+        return rejectWithValue('Image file is required');
       }
 
-      // Prepare the gallery data with base64 image
-      const galleryData = {
-        image_data: imageData
-      };
+      const file = values.image[0];
+      const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+      
+      if (file.size > MAX_FILE_SIZE) {
+        return rejectWithValue('Image size should be less than 5MB');
+      }
 
-      // Send the post with JSON data
+      // Convert file to base64
+      const imageData = await fileToBase64(file);
+      
+      // Send the post with base64-encoded image data
       const response = await axiosInstance.post<Image>(
         '/gallery',
-        galleryData,
-        {
-          headers: {
-            'Content-Type': 'application/json'
-          }
-        }
+        { image_data: imageData }
       );
       
       return response.data;

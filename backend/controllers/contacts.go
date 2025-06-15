@@ -67,25 +67,48 @@ func UpdateContact(c *gin.Context) {
 	id := c.Param("id")
 	var contact models.Contact
 
+	// Find the existing contact
 	if err := config.DB.Where("id = ?", id).First(&contact).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Contact not found"})
 		return
 	}
 
-	var requestBody struct {
-		Email string `json:"email" binding:"required,email"`
-		Phone string `json:"phone" binding:"required"`
-	}
-
-	if err := c.ShouldBindJSON(&requestBody); err != nil {
+	// Use a map to handle partial updates
+	var updateData map[string]interface{}
+	if err := c.ShouldBindJSON(&updateData); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid input: " + err.Error()})
 		return
 	}
 
-	contact.Email = requestBody.Email
-	contact.Phone = requestBody.Phone
+	// Update only the fields that are provided in the request
+	if name, ok := updateData["name"].(string); ok {
+		contact.Name = name
+	}
 
-	config.DB.Save(&contact)
+	if email, ok := updateData["email"].(string); ok {
+		// Validate email if provided
+		if email == "" {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Email cannot be empty"})
+			return
+		}
+		contact.Email = email
+	}
+
+	if phone, ok := updateData["phone"].(string); ok {
+		// Validate phone if provided
+		if phone == "" {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Phone cannot be empty"})
+			return
+		}
+		contact.Phone = phone
+	}
+
+	// Save the updated contact
+	if err := config.DB.Save(&contact).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error updating contact"})
+		return
+	}
+
 	c.JSON(http.StatusOK, &contact)
 }
 

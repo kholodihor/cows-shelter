@@ -8,11 +8,12 @@ import {
 import { AxiosError } from 'axios';
 import axiosInstance from '@/utils/axios';
 
-export type Contact = {
-  id: string;
+export interface Contact {
+  id: number;
+  name: string;
   email: string;
   phone: string;
-};
+}
 
 type ContactState = {
   contacts: Contact[];
@@ -46,6 +47,7 @@ export const addContacts = createAsyncThunk(
   async (values: ContactsFormInput, { rejectWithValue }) => {
     try {
       const newData = {
+        name: values.name,
         email: values.email,
         phone: values.phone
       };
@@ -61,7 +63,7 @@ export const addContacts = createAsyncThunk(
 
 export const editEmail = createAsyncThunk(
   'contacts/editEmail',
-  async (data: { id?: string; values: ContactsFormInput }, { rejectWithValue }) => {
+  async (data: { id?: string; values: Pick<ContactsFormInput, 'email'> }, { rejectWithValue }) => {
     try {
       const newData = {
         email: data.values.email
@@ -78,7 +80,7 @@ export const editEmail = createAsyncThunk(
 
 export const editPhone = createAsyncThunk(
   'contacts/editPhone',
-  async (data: { id?: string; values: ContactsFormInput }, { rejectWithValue }) => {
+  async (data: { id?: string; values: Pick<ContactsFormInput, 'phone'> }, { rejectWithValue }) => {
     try {
       const newData = {
         phone: data.values.phone
@@ -93,12 +95,30 @@ export const editPhone = createAsyncThunk(
   }
 );
 
+export const editName = createAsyncThunk(
+  'contacts/editName',
+  async (data: { id?: string; values: Pick<ContactsFormInput, 'name'> }, { rejectWithValue }) => {
+    try {
+      const newData = {
+        name: data.values.name
+      };
+      const response = await axiosInstance.patch<Contact>(`/contacts/${data.id}`, newData);
+      return response.data;
+    } catch (error) {
+      const err = error as AxiosError;
+      console.error('Failed to update name:', err.message);
+      return rejectWithValue('Failed to update name');
+    }
+  }
+);
+
 const contactsSlice = createSlice({
   name: 'contacts',
   initialState,
   reducers: {},
   extraReducers: (builder) => {
     builder
+      // Handle fetchContacts
       .addCase(fetchContacts.pending, (state) => {
         state.loading = true;
         state.error = null;
@@ -107,6 +127,54 @@ const contactsSlice = createSlice({
         state.contacts = action.payload as Contact[];
         state.loading = false;
       })
+      // Handle addContacts
+      .addCase(addContacts.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(addContacts.fulfilled, (state, action) => {
+        // If contacts is empty, add the new contact, otherwise update the first one
+        if (state.contacts.length === 0) {
+          state.contacts = [action.payload];
+        } else {
+          state.contacts[0] = action.payload;
+        }
+        state.loading = false;
+      })
+      // Handle editEmail
+      .addCase(editEmail.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(editEmail.fulfilled, (state, action) => {
+        if (state.contacts.length > 0) {
+          state.contacts[0].email = action.payload.email;
+        }
+        state.loading = false;
+      })
+      // Handle editPhone
+      .addCase(editPhone.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(editPhone.fulfilled, (state, action) => {
+        if (state.contacts.length > 0) {
+          state.contacts[0].phone = action.payload.phone;
+        }
+        state.loading = false;
+      })
+      // Handle editName
+      .addCase(editName.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(editName.fulfilled, (state, action) => {
+        if (state.contacts.length > 0) {
+          state.contacts[0].name = action.payload.name;
+        }
+        state.loading = false;
+      })
+      // Handle all rejected actions
       .addMatcher(isError, (state, action: PayloadAction<string>) => {
         state.error = action.payload;
         state.loading = false;

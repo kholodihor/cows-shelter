@@ -11,6 +11,16 @@ import (
 	"github.com/kholodihor/cows-shelter-backend/services"
 )
 
+// CreateGalleryRequest represents the JSON request body for creating a gallery item
+type CreateGalleryRequest struct {
+	ImageData string `json:"image_data" binding:"required"` // base64-encoded image data
+}
+
+// UpdateGalleryRequest represents the JSON request body for updating a gallery item
+type UpdateGalleryRequest struct {
+	ImageData string `json:"image_data"` // base64-encoded image data (optional)
+}
+
 func GetAllGalleries(c *gin.Context) {
 	galleries := []models.Gallery{}
 	config.DB.Find(&galleries)
@@ -65,25 +75,28 @@ func GetGalleryByID(c *gin.Context) {
 	c.JSON(http.StatusOK, &gallery)
 }
 
-// CreateGallery handles the creation of a new gallery item with an image upload
+// CreateGallery handles the creation of a new gallery item with a base64-encoded image
 // @Summary Create a new gallery item
-// @Description Create a new gallery item with an image
+// @Description Create a new gallery item with a base64-encoded image
 // @Tags gallery
-// @Accept multipart/form-data
+// @Accept json
 // @Produce json
-// @Param image formData file true "Image file to upload"
+// @Param input body CreateGalleryRequest true "Gallery item data"
 // @Success 201 {object} map[string]interface{}
 // @Failure 400 {object} map[string]string
 // @Failure 500 {object} map[string]string
 // @Router /gallery [post]
 func CreateGallery(c *gin.Context) {
-	// Get the uploaded file from the request
-	file, fileHeader, err := c.Request.FormFile("image")
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Image file is required"})
+	var req CreateGalleryRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request data: " + err.Error()})
 		return
 	}
-	defer file.Close()
+
+	if req.ImageData == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Image data is required"})
+		return
+	}
 
 	// Initialize MinIO service
 	minioService, err := services.NewMinioService()
@@ -92,12 +105,8 @@ func CreateGallery(c *gin.Context) {
 		return
 	}
 
-	// Upload the image to MinIO
-	imageURL, err := minioService.UploadFile(
-		c.Request.Context(),
-		fileHeader,
-		"gallery",
-	)
+	// Upload the base64 image to MinIO
+	imageURL, err := minioService.UploadBase64(c.Request.Context(), req.ImageData, "gallery")
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to upload image: " + err.Error()})
 		return
@@ -111,11 +120,8 @@ func CreateGallery(c *gin.Context) {
 
 	if err := config.DB.Create(&gallery).Error; err != nil {
 		// If database save fails, try to delete the uploaded image from MinIO
-		objectName := minioService.ExtractObjectName(imageURL)
-		if objectName != "" {
-			_ = minioService.DeleteFile(c.Request.Context(), objectName)
-		}
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create gallery entry"})
+		_ = minioService.DeleteFile(c.Request.Context(), imageURL)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create gallery entry: " + err.Error()})
 		return
 	}
 
@@ -125,14 +131,14 @@ func CreateGallery(c *gin.Context) {
 	})
 }
 
-// UpdateGallery handles updating a gallery item with an optional new image
+// UpdateGallery handles updating a gallery item with an optional new base64-encoded image
 // @Summary Update a gallery item
-// @Description Update a gallery item with an optional new image
+// @Description Update a gallery item with an optional new base64-encoded image
 // @Tags gallery
-// @Accept multipart/form-data
+// @Accept json
 // @Produce json
 // @Param id path int true "Gallery ID"
-// @Param image formData file false "New image file to upload"
+// @Param input body UpdateGalleryRequest true "Updated gallery item data"
 // @Success 200 {object} models.Gallery
 // @Failure 400 {object} map[string]string
 // @Failure 404 {object} map[string]string
@@ -146,6 +152,12 @@ func UpdateGallery(c *gin.Context) {
 		return
 	}
 
+	var req UpdateGalleryRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request data: " + err.Error()})
+		return
+	}
+
 	// Initialize MinIO service
 	minioService, err := services.NewMinioService()
 	if err != nil {
@@ -154,37 +166,27 @@ func UpdateGallery(c *gin.Context) {
 	}
 
 	// Check if a new image is being uploaded
-	file, fileHeader, err := c.Request.FormFile("image")
-	if err == nil {
-		defer file.Close()
-
-		// Upload the new image to MinIO
-		newImageURL, err := minioService.UploadFile(
-			c.Request.Context(),
-			fileHeader,
-			"gallery",
-		)
+	if req.ImageData != "" {
+		// Upload the new base64 image to MinIO
+		newImageURL, err := minioService.UploadBase64(c.Request.Context(), req.ImageData, "gallery")
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to upload new image: " + err.Error()})
 			return
 		}
 
-		// Delete the old image from MinIO
+		// Delete the old image from MinIO if it exists
 		if gallery.ImageUrl != "" {
-			oldObjectName := minioService.ExtractObjectName(gallery.ImageUrl)
-			if oldObjectName != "" {
-				_ = minioService.DeleteFile(c.Request.Context(), oldObjectName)
-			}
+			_ = minioService.DeleteFile(c.Request.Context(), gallery.ImageUrl)
 		}
 
 		// Update the image URL
 		gallery.ImageUrl = newImageURL
-	}
 
-	// Save the updated gallery item
-	if err := config.DB.Save(&gallery).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update gallery"})
-		return
+		// Save the updated gallery item
+		if err := config.DB.Save(&gallery).Error; err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update gallery: " + err.Error()})
+			return
+		}
 	}
 
 	c.JSON(http.StatusOK, &gallery)

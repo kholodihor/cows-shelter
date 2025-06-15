@@ -7,6 +7,7 @@ import {
 } from '@reduxjs/toolkit';
 import { AxiosError } from 'axios';
 import axiosInstance from '@/utils/axios';
+import { transformMinioUrlsInData } from '@/utils/minioUrlHelper';
 
 export type Pdf = {
   id: string;
@@ -30,9 +31,11 @@ const initialState: PdfState = {
 export const fetchPdfs = createAsyncThunk('pdf/fetchPdfs', async (_, { rejectWithValue }) => {
   try {
     const response = await axiosInstance.get<Pdf[]>('/pdf');
-    const data = response.data;
+    let data = response.data;
     // Return empty array if no documents are found
-    return Array.isArray(data) ? data : [];
+    data = Array.isArray(data) ? data : [];
+    // Transform MinIO URLs in the response data
+    return transformMinioUrlsInData(data);
   } catch (error) {
     const err = error as AxiosError;
     console.error('Failed to fetch PDFs:', err.message);
@@ -45,8 +48,8 @@ export const fetchPdfById = createAsyncThunk(
   async (id: string) => {
     try {
       const response = await axiosInstance.get<Pdf>(`/pdf/${id}`);
-      const data = response.data;
-      return data;
+      // Transform MinIO URL in the response data
+      return transformMinioUrlsInData(response.data);
     } catch (error) {
       const err = error as AxiosError;
       return err.message;
@@ -66,23 +69,35 @@ export const removePdf = createAsyncThunk(
   }
 );
 
+// Helper function to convert file to base64
+const fileToBase64 = (file: File): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = (error) => reject(error);
+  });
+};
+
 export const addNewPdf = createAsyncThunk(
   'pdf/addNewPdf',
-  async (values: PdfFormInput) => {
+  async (values: PdfFormInput, { rejectWithValue }) => {
     try {
       const file = values.document[0];
-      const formData = new FormData();
-      formData.append('file', file);
-      const { data } = await axiosInstance.post('/upload-pdf', formData);
+      const documentData = await fileToBase64(file);
+      
       const newPdf = {
         title: values.title,
-        document_url: data.document_url,
-        document_id: data.document_id
+        document_data: documentData
       };
-      await axiosInstance.post('/pdf', newPdf);
+      
+      const response = await axiosInstance.post<Pdf>('/pdf', newPdf);
+      // Transform MinIO URL in the response data
+      return transformMinioUrlsInData(response.data);
     } catch (error) {
-      const err = error as AxiosError;
-      return err.message;
+      const err = error as Error;
+      console.error('Failed to add new PDF:', err.message);
+      return rejectWithValue('Failed to add new PDF');
     }
   }
 );

@@ -10,6 +10,12 @@ import (
 	"github.com/kholodihor/cows-shelter-backend/services"
 )
 
+// CreatePdfRequest represents the JSON request body for creating a PDF
+type CreatePdfRequest struct {
+	Title      string `json:"title" binding:"required"`
+	DocumentData string `json:"document_data" binding:"required"` // base64-encoded document data
+}
+
 // GetPdfs - Retrieve all PDFs
 func GetPdfs(c *gin.Context) {
 	var pdfs []models.Pdf
@@ -29,19 +35,22 @@ func GetPdfByID(c *gin.Context) {
 	c.JSON(http.StatusOK, &pdf)
 }
 
-// CreatePdf - Create a new PDF entry
+// CreatePdf handles the creation of a new PDF entry with a base64-encoded document
+// @Summary Create a new PDF entry
+// @Description Create a new PDF entry with a base64-encoded document
+// @Tags pdfs
+// @Accept json
+// @Produce json
+// @Param input body CreatePdfRequest true "PDF data"
+// @Success 201 {object} models.Pdf
+// @Failure 400 {object} map[string]string
+// @Failure 500 {object} map[string]string
+// @Router /pdfs [post]
 func CreatePdf(c *gin.Context) {
-	// Get the title from form data
-	title := c.PostForm("title")
-	if title == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Title is required"})
-		return
-	}
-
-	// Check if a document file was uploaded
-	fileHeader, err := c.FormFile("document")
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Document file is required"})
+	// Parse the request body
+	var req CreatePdfRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request data: " + err.Error()})
 		return
 	}
 
@@ -52,12 +61,8 @@ func CreatePdf(c *gin.Context) {
 		return
 	}
 
-	// Upload the document to MinIO
-	documentURL, err := minioService.UploadFile(
-		c.Request.Context(),
-		fileHeader,
-		"documents",
-	)
+	// Upload the document to MinIO using base64 data
+	documentURL, err := minioService.UploadBase64(c.Request.Context(), req.DocumentData, "documents")
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to upload document: " + err.Error()})
 		return
@@ -65,22 +70,19 @@ func CreatePdf(c *gin.Context) {
 
 	// Create the new PDF entry
 	pdf := models.Pdf{
-		Title:       title,
+		Title:       req.Title,
 		DocumentUrl: documentURL,
 		CreatedAt:   time.Now(),
 	}
 
 	if err := config.DB.Create(&pdf).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error creating PDF"})
+		// Attempt to delete the uploaded document if database operation fails
+		_ = minioService.DeleteFile(c.Request.Context(), minioService.ExtractObjectName(documentURL))
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create PDF"})
 		return
 	}
 
-	c.JSON(http.StatusCreated, gin.H{
-		"id":          pdf.ID,
-		"title":       pdf.Title,
-		"document_url": pdf.DocumentUrl,
-		"created_at":  pdf.CreatedAt,
-	})
+	c.JSON(http.StatusCreated, &pdf)
 }
 
 // DeletePdf - Delete a specific PDF by ID

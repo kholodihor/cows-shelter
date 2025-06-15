@@ -58,10 +58,10 @@ const Partners = () => {
           {partners.map((partner) => (
             <div
               key={partner.id}
-              className="flex flex h-[288px] w-[211px] flex-col flex-col items-center justify-center border-2 border-gray-300 pt-2"
+              className="flex h-[288px] w-[211px] flex-col items-center justify-center border-2 border-gray-300 pt-2"
             >
               <img
-                src={createImgUrl(partner.logo)}
+                src={partner.logo}
                 alt={partner.name}
                 width={160}
                 height={160}

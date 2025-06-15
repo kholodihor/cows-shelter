@@ -52,7 +52,7 @@ const EditPartner = () => {
     setValue('name', partnerData[0].name);
     setValue('link', partnerData[0].link);
     setValue('logo', [new File([], partnerData[0].logo, { type: 'for-url' })]);
-    setImage(createImgUrl(partnerData[0].logo));
+    setImage(partnerData[0].logo);
   }, [id, partners, setValue]);
 
   const currentValues = watch();
@@ -73,7 +73,7 @@ const EditPartner = () => {
   ) => {
     try {
       setIsProcessing(true);
-      await dispatch(editPartner({ id, values }));
+      await dispatch(editPartner({ id: id as string, values }));
       setIsProcessing(false);
       dispatch(openAlert(editSuccessResponseMessage('партнера')));
       navigate(-1);
@@ -137,11 +137,10 @@ const EditPartner = () => {
 
               <div className="flex gap-4">
                 <button
-                  className={`w-[13.5rem] px-6 py-2 font-medium ${
-                    isDirty && isValid
-                      ? 'cursor-pointer bg-accent text-black'
-                      : 'cursor-not-allowed bg-disabled text-white'
-                  }`}
+                  className={`w-[13.5rem] px-6 py-2 font-medium ${isDirty && isValid
+                    ? 'cursor-pointer bg-accent text-black'
+                    : 'cursor-not-allowed bg-disabled text-white'
+                    }`}
                 >
                   {isProcessing ? 'Обробка запиту...' : 'Розмістити'}
                 </button>

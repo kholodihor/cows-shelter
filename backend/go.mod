@@ -2,8 +2,6 @@ module github.com/kholodihor/cows-shelter-backend
 
 go 1.24.2
 
-toolchain go1.24.2
-
 require (
 	github.com/aws/aws-sdk-go v1.55.7
 	github.com/gin-gonic/gin v1.10.0

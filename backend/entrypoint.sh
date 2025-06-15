@@ -1,5 +1,7 @@
 #!/bin/sh
-set -e
+
+# Don't exit on errors - we want to try to start the app even if migrations fail
+set +e
 
 # Wait for PostgreSQL to be ready
 echo "Waiting for PostgreSQL to be ready..."
@@ -11,10 +13,9 @@ done
 # Change to app directory
 cd /app
 
-# Run database migrations
-echo "Running database migrations..."
-app migrate
+# Skip migrations for now - we'll handle them separately if needed
+echo "Skipping automatic migrations for now"
 
 # Start the application
 echo "Starting the application..."
-exec app "$@"
+exec /usr/local/bin/app "$@"

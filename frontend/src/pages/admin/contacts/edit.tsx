@@ -5,7 +5,7 @@ import { Dispatch, SetStateAction, useEffect, useState } from 'react';
 import { Controller, SubmitHandler, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useAppDispatch } from '@/store/hook';
-import { editEmail, editPhone } from '@/store/slices/contactsSlice';
+import { editEmail, editPhone, editName } from '@/store/slices/contactsSlice';
 import { contactsValidation } from './contactsSchema';
 import { TfiClose } from 'react-icons/tfi';
 import { openAlert } from '@/store/slices/responseAlertSlice';
@@ -18,12 +18,12 @@ import { useNavigate } from 'react-router-dom';
 type EditContactsProps = {
   id: string;
   data: string;
+  currentType: 'name' | 'email' | 'phone';
   setIsModalOpen: Dispatch<SetStateAction<boolean>>;
 };
 
-const Edit = ({ setIsModalOpen, data, id }: EditContactsProps) => {
+const Edit = ({ setIsModalOpen, data, id, currentType }: EditContactsProps) => {
   const dispatch = useAppDispatch();
-  const [currentType, setCurrentType] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
   const navigate = useNavigate();
   const {
@@ -39,41 +39,43 @@ const Edit = ({ setIsModalOpen, data, id }: EditContactsProps) => {
 
 
   useEffect(() => {
-    const emailRegex = /^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/;
-    if (emailRegex.test(data)) {
-      setCurrentType('email');
-    } else {
-      setCurrentType('phone');
-    }
-  }, [data, setValue]);
+    setValue(currentType as keyof ContactsFormInput, data);
+  }, [currentType, data, setValue]);
 
   const onSubmit: SubmitHandler<ContactsFormInput> = async (
     values: ContactsFormInput
   ) => {
     try {
       setIsProcessing(true);
-      currentType === 'email'
-        ? await dispatch(editEmail({ id, values }))
-        : await dispatch(editPhone({ id, values }));
+      if (currentType === 'email') {
+        await dispatch(
+          editEmail({
+            id,
+            values: { email: values.email || '' }
+          })
+        );
+      } else if (currentType === 'phone') {
+        await dispatch(
+          editPhone({
+            id,
+            values: { phone: values.phone || '' }
+          })
+        );
+      } else if (currentType === 'name') {
+        await dispatch(
+          editName({
+            id,
+            values: { name: values.name || '' }
+          })
+        );
+      }
       setIsProcessing(false);
+      dispatch(openAlert(editSuccessResponseMessage('контакт')));
       setIsModalOpen(false);
-      dispatch(
-        openAlert(
-          editSuccessResponseMessage(
-            `${currentType === 'email' ? 'eлектронної пошти' : 'номера телефону'
-            }`
-          )
-        )
-      );
-      navigate('/admin/contacts');
-    } catch (error: any) {
-      dispatch(
-        openAlert(
-          editErrorResponseMessage(
-            `${currentType === 'email' ? 'eлектронну пошту' : 'номер телефону'}`
-          )
-        )
-      );
+      navigate(0);
+    } catch (error: unknown) {
+      console.error('Error updating contact:', error);
+      dispatch(openAlert(editErrorResponseMessage('контакт')));
     }
   };
 
@@ -86,69 +88,109 @@ const Edit = ({ setIsModalOpen, data, id }: EditContactsProps) => {
         <button
           className="absolute right-5 top-4 text-graphite hover:text-accent"
           onClick={() => setIsModalOpen(false)}
-        >
-          <TfiClose size={20} />
-        </button>
+        />
         <form
           onSubmit={handleSubmit(onSubmit)}
           autoComplete="off"
-          className="max-x-[23.75rem] mx-auto my-[3.75rem] flex flex-col justify-center gap-4 p-4 text-base"
+          className="w-full max-w-md mx-auto"
         >
-          <h4 className="text-2xl font-bold">
-            {`Зміна 
-            ${currentType === 'email' ? 'електронної пошти' : 'номера телефону'
-              }`}
-          </h4>
-          <p className="text-graphite">
-            {`Ваш ${currentType === 'email' ? 'електронна пошта' : 'номер телефону'
+          <div className="flex flex-col gap-6 p-6">
+            <div className="flex justify-between items-center">
+              <h4 className="text-2xl font-bold">
+                {`Зміна ${
+                  currentType === 'email' 
+                    ? 'електронної пошти' 
+                    : currentType === 'phone' 
+                    ? 'номера телефону' 
+                    : "ім'я"
+                }`}
+              </h4>
+              <button 
+                type="button"
+                onClick={() => setIsModalOpen(false)}
+                className="text-gray-500 hover:text-gray-700"
+              >
+                <TfiClose size={24} />
+              </button>
+            </div>
+            
+            <p className="text-graphite">
+              {`Ваш ${
+                currentType === 'email' 
+                  ? 'електронна пошта' 
+                  : currentType === 'phone' 
+                  ? 'номер телефону' 
+                  : "ім'я"
               }: `}
-            <span className="text-[17px]">{data}</span>
-          </p>
-          <Controller
-            name={currentType === 'email' ? 'email' : 'phone'}
-            control={control}
-            render={({ field }) => (
-              <TextInput
-                {...field}
-                errorText={
-                  currentType === 'email'
-                    ? errors.email?.message
-                    : errors.phone?.message
-                }
-                placeholder={
-                  currentType === 'email'
-                    ? 'Введіть електронну пошту'
-                    : 'Введіть номер телефону'
-                }
-                title={
-                  currentType === 'email'
-                    ? 'Оновлена електронна пошта:'
-                    : 'Оновлений номер телефону:'
-                }
+              <span className="text-[17px] font-medium">{data}</span>
+            </p>
+            
+            <div className="mt-4">
+              <Controller
+                control={control}
+                name={currentType === 'email' ? 'email' : 
+                      currentType === 'phone' ? 'phone' : 'name'}
+                render={({ field }) => (
+                  <TextInput
+                    {...field}
+                    errorText={
+                      currentType === 'email'
+                        ? errors.email?.message
+                        : currentType === 'phone'
+                        ? errors.phone?.message
+                        : errors.name?.message
+                    }
+                    placeholder={
+                      currentType === 'email'
+                        ? 'Введіть електронну пошту'
+                        : currentType === 'phone'
+                        ? 'Введіть номер телефону'
+                        : "Введіть ім'я"
+                    }
+                    title={
+                      currentType === 'email'
+                        ? 'Електронна пошта'
+                        : currentType === 'phone'
+                        ? 'Номер телефону'
+                        : "Ім'я"
+                    }
+                  />
+                )}
               />
-            )}
-          />
-          <p
-            className={`text-[17px] ${isDirty && isValid ? 'text-black' : 'text-disabled'
-              }`}
-          >{`Змінити ${currentType === 'email' ? 'електронну пошту' : 'номер телефону'
-            }?`}</p>
-          <div className="flex w-full gap-4">
-            <button
-              className={`w-[13.5rem] px-6 py-2 font-medium ${isDirty && !Object.keys(errors).length
-                ? 'cursor-pointer bg-accent text-black'
-                : 'cursor-not-allowed bg-disabled text-white'
-                } mt-4 `}
-              disabled={!isDirty || !!Object.keys(errors).length}
-            >
-              {isProcessing ? 'Обробка запиту...' : 'Змінити'}
-            </button>
-            <button
-              onClick={() => setIsModalOpen(false)}
-              className="mt-4 w-[13.5rem] border border-black bg-white p-2  hover:border-accent focus:border-lightgrey"
-            >
-              Скасувати
-            </button>
+            </div>
+            
+            <p className={`text-[17px] ${
+              isDirty && isValid ? 'text-black' : 'text-gray-400'
+            }`}>
+              {`Змінити ${
+                currentType === 'email' 
+                  ? 'електронну пошту' 
+                  : currentType === 'phone' 
+                  ? 'номер телефону' 
+                  : "ім'я"
+              }?`}
+            </p>
+            
+            <div className="flex gap-4 mt-4">
+              <button
+                type="submit"
+                disabled={!isDirty || !isValid || isProcessing}
+                className={`flex-1 px-6 py-2 font-medium rounded ${
+                  isDirty && isValid && !isProcessing
+                    ? 'bg-accent text-white hover:bg-accent/90'
+                    : 'bg-gray-200 text-gray-500 cursor-not-allowed'
+                }`}
+              >
+                {isProcessing ? 'Обробка запиту...' : 'Зберегти зміни'}
+              </button>
+              <button
+                type="button"
+                onClick={() => setIsModalOpen(false)}
+                className="flex-1 px-6 py-2 border border-gray-300 bg-white text-gray-700 rounded hover:bg-gray-50"
+              >
+                Скасувати
+              </button>
+            </div>
           </div>
         </form>
       </div>

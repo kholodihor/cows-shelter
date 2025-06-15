@@ -10,6 +10,20 @@ import (
 	"github.com/kholodihor/cows-shelter-backend/services"
 )
 
+// CreatePartnerRequest represents the JSON request body for creating a partner
+type CreatePartnerRequest struct {
+	Name     string `json:"name" binding:"required"`
+	Link     string `json:"link"`
+	LogoData string `json:"logo_data" binding:"required"` // base64-encoded image data
+}
+
+// UpdatePartnerRequest represents the JSON request body for updating a partner
+type UpdatePartnerRequest struct {
+	Name     string `json:"name"`
+	Link     string `json:"link"`
+	LogoData string `json:"logo_data"` // base64-encoded image data (optional)
+}
+
 func GetAllPartners(c *gin.Context) {
 	partners := []models.Partner{}
 	config.DB.Find(&partners)
@@ -64,80 +78,95 @@ func GetPartnerByID(c *gin.Context) {
 	c.JSON(http.StatusOK, &partner)
 }
 
+// CreatePartner handles the creation of a new partner with a base64-encoded logo
+// @Summary Create a new partner
+// @Description Create a new partner with a base64-encoded logo
+// @Tags partners
+// @Accept json
+// @Produce json
+// @Param input body CreatePartnerRequest true "Partner data"
+// @Success 201 {object} models.Partner
+// @Failure 400 {object} map[string]string
+// @Failure 500 {object} map[string]string
+// @Router /partners [post]
 func CreatePartner(c *gin.Context) {
-	// Parse form data
-	name := c.PostForm("name")
-	link := c.PostForm("link")
-
-	if name == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Name is required"})
+	var req CreatePartnerRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request data: " + err.Error()})
 		return
 	}
 
-	// Initialize partner with form data
+	// Initialize MinIO service
+	minioService, err := services.NewMinioService()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to initialize MinIO service"})
+		return
+	}
+
+	// Upload the logo to MinIO using base64 data
+	imageURL, err := minioService.UploadBase64(c.Request.Context(), req.LogoData, "partners")
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to upload logo: " + err.Error()})
+		return
+	}
+
+	// Create the partner with the logo URL
 	partner := models.Partner{
-		Name: name,
-		Link: link,
+		Name: req.Name,
+		Link: req.Link,
+		Logo: imageURL,
 	}
 
-	// Check if a logo file was uploaded
-	fileHeader, err := c.FormFile("logo")
-	if err == nil {
-		// Initialize MinIO service
-		minioService, err := services.NewMinioService()
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to initialize MinIO service"})
-			return
-		}
-
-		// Upload the logo to MinIO
-		imageURL, err := minioService.UploadFile(
-			c.Request.Context(),
-			fileHeader,
-			"partners",
-		)
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to upload logo: " + err.Error()})
-			return
-		}
-
-		// Set the logo URL in the partner model
-		partner.Logo = imageURL
-	}
-
-	// Save the partner entry to the database
+	// Save the partner to the database
 	if err := config.DB.Create(&partner).Error; err != nil {
+		// Attempt to delete the uploaded image if database operation fails
+		_ = minioService.DeleteFile(c.Request.Context(), minioService.ExtractObjectName(imageURL))
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create partner"})
 		return
 	}
 
-	c.JSON(http.StatusCreated, gin.H{
-		"id":   partner.ID,
-		"name": partner.Name,
-		"link": partner.Link,
-		"logo": partner.Logo,
-	})
+	c.JSON(http.StatusCreated, &partner)
 }
 
+// UpdatePartner handles updating an existing partner with an optional new base64-encoded logo
+// @Summary Update an existing partner
+// @Description Update an existing partner with an optional new base64-encoded logo
+// @Tags partners
+// @Accept json
+// @Produce json
+// @Param id path int true "Partner ID"
+// @Param input body UpdatePartnerRequest true "Updated partner data"
+// @Success 200 {object} models.Partner
+// @Failure 400 {object} map[string]string
+// @Failure 404 {object} map[string]string
+// @Failure 500 {object} map[string]string
+// @Router /partners/{id} [put]
 func UpdatePartner(c *gin.Context) {
+	// Get the partner ID from the URL
+	id := c.Param("id")
 	var partner models.Partner
-	if err := config.DB.Where("id = ?", c.Param("id")).First(&partner).Error; err != nil {
+	if err := config.DB.Where("id = ?", id).First(&partner).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Partner not found"})
 		return
 	}
 
-	// Update fields from form data
-	if name := c.PostForm("name"); name != "" {
-		partner.Name = name
+	// Parse the request body
+	var req UpdatePartnerRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request data: " + err.Error()})
+		return
 	}
 
-	if link := c.PostForm("link"); link != "" {
-		partner.Link = link
+	// Update the partner fields if they are provided in the request
+	if req.Name != "" {
+		partner.Name = req.Name
+	}
+	if req.Link != "" {
+		partner.Link = req.Link
 	}
 
-	// Parse the file if a new logo is uploaded
-	fileHeader, err := c.FormFile("logo")
-	if err == nil {
+	// Handle logo update if new image data is provided
+	if req.LogoData != "" {
 		// Initialize MinIO service
 		minioService, err := services.NewMinioService()
 		if err != nil {
@@ -153,12 +182,8 @@ func UpdatePartner(c *gin.Context) {
 			}
 		}
 
-		// Upload the new logo to MinIO
-		imageURL, err := minioService.UploadFile(
-			c.Request.Context(),
-			fileHeader,
-			"partners",
-		)
+		// Upload the new logo to MinIO using base64 data
+		imageURL, err := minioService.UploadBase64(c.Request.Context(), req.LogoData, "partners")
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to upload new logo: " + err.Error()})
 			return
@@ -168,6 +193,7 @@ func UpdatePartner(c *gin.Context) {
 		partner.Logo = imageURL
 	}
 
+	// Save the updated partner to the database
 	if err := config.DB.Save(&partner).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update partner"})
 		return

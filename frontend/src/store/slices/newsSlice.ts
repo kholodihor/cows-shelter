@@ -7,6 +7,7 @@ import {
 } from '@reduxjs/toolkit';
 import { AxiosError } from 'axios';
 import axiosInstance from '@/utils/axios';
+import { transformMinioUrlsInData } from '@/utils/minioUrlHelper';
 
 export type Post = {
   id: string;
@@ -46,7 +47,9 @@ export const fetchPosts = createAsyncThunk('news/fetchPosts', async (_, { reject
   try {
     const response = await axiosInstance.get<Post[]>('/news');
     const data = response.data;
-    return Array.isArray(data) ? data : [];
+    // Transform MinIO URLs in the response data
+    const transformedData = transformMinioUrlsInData(Array.isArray(data) ? data : []);
+    return transformedData;
   } catch (error) {
     const err = error as AxiosError;
     console.error('Failed to fetch news posts:', err.message);
@@ -59,7 +62,9 @@ export const fetchPostById = createAsyncThunk(
   async (id: string, { rejectWithValue }) => {
     try {
       const response = await axiosInstance.get<Post>(`/news/${id}`);
-      return response.data;
+      // Transform MinIO URLs in the response data
+      const transformedData = transformMinioUrlsInData(response.data);
+      return transformedData;
     } catch (error) {
       const err = error as AxiosError;
       console.error(`Failed to fetch news post with id ${id}:`, err.message);
@@ -79,7 +84,7 @@ export const fetchNewsWithPagination = createAsyncThunk(
 
       // Transform the response to match the expected format
       const transformedData: ResponseWithPagination = {
-        posts: response.data?.data || [],
+        posts: transformMinioUrlsInData(response.data?.data || []),
         totalLength: response.data?.total || 0
       };
 
@@ -122,7 +127,7 @@ export const addNewPost = createAsyncThunk(
     try {
       // Convert image to base64 if it exists
       let imageData = '';
-      
+
       if (values.image && values.image[0] && values.image[0] instanceof File) {
         try {
           const file = values.image[0];
@@ -131,7 +136,7 @@ export const addNewPost = createAsyncThunk(
           if (file.size > MAX_FILE_SIZE) {
             return rejectWithValue('Image size should be less than 5MB');
           }
-          
+
           imageData = await fileToBase64(file);
         } catch (uploadError) {
           console.error('Image processing failed:', uploadError);
@@ -158,11 +163,11 @@ export const addNewPost = createAsyncThunk(
           'Content-Type': 'application/json'
         }
       });
-      
+
       if (!response.data) {
         throw new Error('No data received from server');
       }
-      
+
       return response.data;
     } catch (error) {
       const err = error as AxiosError;
@@ -182,7 +187,7 @@ export const editPost = createAsyncThunk(
 
       // Convert image to base64 if a new image is provided
       let imageData = '';
-      
+
       if (postData.values.image?.[0] && postData.values.image[0] instanceof File) {
         // Check if this is a real file with actual content (not a dummy file)
         // Dummy files created in the edit form have size 0
@@ -194,7 +199,7 @@ export const editPost = createAsyncThunk(
             if (file.size > MAX_FILE_SIZE) {
               return rejectWithValue('Image size should be less than 5MB');
             }
-            
+
             imageData = await fileToBase64(file);
           } catch (uploadError) {
             console.error('Image processing failed:', uploadError);
@@ -202,7 +207,7 @@ export const editPost = createAsyncThunk(
           }
         }
       }
-      
+
       // Prepare the update data with the same structure as addNewPost
       const updateData: Record<string, any> = {
         title_ua: postData.values.titleUa || '',
@@ -212,7 +217,7 @@ export const editPost = createAsyncThunk(
         content_ua: postData.values.contentUa || '',
         content_en: postData.values.contentEn || postData.values.contentUa || ''
       };
-      
+
       // Only include image_data if a new image was provided
       // This ensures we keep the existing Cloudinary URL if no new image is uploaded
       if (imageData) {

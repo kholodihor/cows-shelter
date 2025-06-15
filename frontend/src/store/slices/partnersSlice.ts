@@ -5,8 +5,8 @@ import {
   createSlice,
   PayloadAction
 } from '@reduxjs/toolkit';
-import { AxiosError } from 'axios';
 import axiosInstance from '@/utils/axios';
+import { transformMinioUrlsInData } from '@/utils/minioUrlHelper';
 
 export type Partner = {
   id: string;
@@ -42,8 +42,10 @@ export const fetchPartners = createAsyncThunk(
   async (_, { rejectWithValue }) => {
     try {
       const response = await axiosInstance.get<Partner[]>('/partners');
-      const data = response.data;
-      return Array.isArray(data) ? data : [];
+      let data = response.data;
+      data = Array.isArray(data) ? data : [];
+      // Transform MinIO URLs in the response data
+      return transformMinioUrlsInData(data);
     } catch (error) {
       const err = error as Error;
       console.error('Failed to fetch partners:', err.message);
@@ -59,8 +61,12 @@ export const fetchPartnersWithPagination = createAsyncThunk(
       const response = await axiosInstance.get<ResponseWithPagination>(
         `/partners/pagination?page=${query.page}&limit=${query.limit}`
       );
-      const data = response.data;
-      return data || { partners: [], totalLength: 0 };
+      let data = response.data || { partners: [], totalLength: 0 };
+      // Transform MinIO URLs in the response data
+      if (data.partners && Array.isArray(data.partners)) {
+        data.partners = transformMinioUrlsInData(data.partners);
+      }
+      return data;
     } catch (error) {
       const err = error as Error;
       console.error('Failed to fetch partners with pagination:', err.message);
@@ -83,59 +89,101 @@ export const removePartner = createAsyncThunk(
   }
 );
 
+// Helper function to convert file to base64
+const fileToBase64 = (file: File): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = (error) => reject(error);
+  });
+};
+
 export const addNewPartner = createAsyncThunk(
   'partners/addNewPartner',
   async (values: PartnersFormInput, { rejectWithValue }) => {
     try {
       const file = values.logo[0];
-      const formData = new FormData();
-      formData.append('image', file);
-      const { data: uploadData } = await axiosInstance.post<{ image_url: string }>('/upload-image', formData);
+      const logoData = await fileToBase64(file);
       
       const newPartner = {
         name: values.name,
         link: values.link,
-        logo: uploadData.image_url
+        logo_data: logoData
       };
       
       const response = await axiosInstance.post<Partner>('/partners', newPartner);
       return response.data;
     } catch (error) {
       const err = error as Error;
-      console.error('Failed to add partner:', err.message);
-      return rejectWithValue('Failed to add partner');
+      console.error('Failed to add new partner:', err.message);
+      return rejectWithValue('Failed to add new partner');
     }
   }
 );
 
+// Alias updatePartner as editPartner for backward compatibility
 export const editPartner = createAsyncThunk(
-  'partners/editPartner',
-  async (partnersData: { id?: string; values: PartnersFormInput }, { rejectWithValue }) => {
+  'partners/updatePartner',
+  async ({ id, values }: { id: string; values: PartnersFormInput }, { rejectWithValue }) => {
     try {
-      let logoUrl: string;
-      
-      if (partnersData.values.logo[0].size > 0) {
-        const file = partnersData.values.logo[0];
-        const formData = new FormData();
-        formData.append('image', file);
-        const { data } = await axiosInstance.post<{ image_url: string }>('/upload-image', formData);
-        logoUrl = data.image_url;
-      } else {
-        logoUrl = partnersData.values.logo[0].name;
+      // Convert logo to base64 if a new logo is provided
+      let logoData = '';
+
+      if (values.logo?.[0] && values.logo[0] instanceof File) {
+        // Check if this is a real file with actual content (not a dummy file)
+        // Dummy files created in the edit form have size 0
+        if (values.logo[0].size > 0) {
+          try {
+            const file = values.logo[0];
+            // Check if file size is reasonable (e.g., less than 5MB)
+            const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+            if (file.size > MAX_FILE_SIZE) {
+              return rejectWithValue('Logo size should be less than 5MB');
+            }
+
+            logoData = await fileToBase64(file);
+          } catch (uploadError) {
+            console.error('Logo processing failed:', uploadError);
+            return rejectWithValue('Failed to process logo');
+          }
+        }
       }
-      
-      const updatedPartner = {
-        name: partnersData.values.name,
-        link: partnersData.values.link,
-        logo: logoUrl
+
+      // Prepare the update data
+      const updateData: Record<string, any> = {
+        name: values.name || '',
+        link: values.link || ''
       };
-      
-      const response = await axiosInstance.patch<Partner>(`/partners/${partnersData.id}`, updatedPartner);
+
+      // Only include logo_data if a new logo was provided
+      // This ensures we keep the existing logo URL if no new logo is uploaded
+      if (logoData) {
+        updateData.logo_data = logoData;
+      }
+
+      console.log('Updating partner with data:', updateData);
+
+      // Update the partner with JSON data
+      const response = await axiosInstance.patch<Partner>(
+        `/partners/${id}`,
+        updateData,
+        {
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        }
+      );
+
+      if (!response.data) {
+        throw new Error('No data received from server');
+      }
+
       return response.data;
     } catch (error) {
-      const err = error as AxiosError;
-      console.error('Failed to update partner:', err.message);
-      return rejectWithValue('Failed to update partner');
+      const err = error as Error;
+      console.error('Failed to update partner:', error);
+      return rejectWithValue(err.message || 'Failed to update partner');
     }
   }
 );
@@ -166,6 +214,31 @@ const partnersSlice = createSlice({
         state.partners = state.partners.filter(
           (item) => item.id !== (action.meta.arg as string)
         );
+      })
+      .addCase(editPartner.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(editPartner.fulfilled, (state, action: PayloadAction<Partner>) => {
+        state.loading = false;
+        const index = state.partners.findIndex(
+          (partner) => partner.id === action.payload.id
+        );
+        if (index !== -1) {
+          state.partners[index] = action.payload;
+        }
+        // Also update in paginated data if it exists
+        const paginatedIndex = state.paginatedData.partners.findIndex(
+          (partner) => partner.id === action.payload.id
+        );
+        if (paginatedIndex !== -1) {
+          state.paginatedData.partners[paginatedIndex] = action.payload;
+        }
+      })
+      .addCase(editPartner.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload as string || 'Failed to update partner';
+        // Don't modify the partners array on error, just update the loading and error states
       })
       .addMatcher(isError, (state, action: PayloadAction<string>) => {
         state.error = action.payload;
