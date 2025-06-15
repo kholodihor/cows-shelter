@@ -91,18 +91,58 @@ export const removeImage = createAsyncThunk(
   }
 );
 
+
+
+// Helper function to convert file to base64
+const fileToBase64 = (file: File): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = (error) => reject(error);
+  });
+};
+
 export const addNewImage = createAsyncThunk(
   'gallery/addNewImage',
   async (values: NewsFormInput, { rejectWithValue }) => {
     try {
-      const file = values.image[0];
-      const formData = new FormData();
-      formData.append('image', file);
-      const { data } = await axiosInstance.post<{ image_url: string }>('/upload-image', formData);
-      const newImage = {
-        image_url: data.image_url
+      // Convert image to base64 if it exists
+      let imageData = '';
+      
+      if (values.image && values.image[0] && values.image[0] instanceof File) {
+        try {
+          const file = values.image[0];
+          // Check if file size is reasonable (e.g., less than 5MB)
+          const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+          if (file.size > MAX_FILE_SIZE) {
+            return rejectWithValue('Image size should be less than 5MB');
+          }
+          
+          imageData = await fileToBase64(file);
+        } catch (uploadError) {
+          console.error('Image processing failed:', uploadError);
+          return rejectWithValue('Failed to process image');
+        }
+      }
+
+      // Prepare the gallery data with base64 image
+      const galleryData = {
+        image_data: imageData
       };
-      await axiosInstance.post('/gallery', newImage);
+
+      // Send the post with JSON data
+      const response = await axiosInstance.post<Image>(
+        '/gallery',
+        galleryData,
+        {
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        }
+      );
+      
+      return response.data;
     } catch (error) {
       const err = error as AxiosError;
       console.error('Failed to add new image:', err.message);
@@ -146,6 +186,16 @@ const gallerySlice = createSlice({
         state.images = state.images.filter(
           (item) => item.id !== (action.meta.arg as string)
         );
+      })
+      .addCase(addNewImage.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(addNewImage.fulfilled, (state, action) => {
+        if (action.payload) {
+          state.images.push(action.payload as Image);
+        }
+        state.loading = false;
       })
       .addMatcher(isError, (state, action: PayloadAction<string>) => {
         state.error = action.payload;

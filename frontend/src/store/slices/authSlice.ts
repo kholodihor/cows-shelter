@@ -12,9 +12,10 @@ const getInitialState = (): AuthState => {
   if (userString) {
     try {
       user = JSON.parse(userString);
-    } catch (_e) {
+    } catch (error) {
       // Invalid JSON in localStorage, clear it
       localStorage.removeItem('user');
+      console.error('Failed to parse user data from localStorage:', error);
       // No need to handle the error further as we're just clearing invalid data
     }
   }

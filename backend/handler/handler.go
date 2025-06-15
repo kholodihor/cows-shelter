@@ -38,6 +38,8 @@ func RouterHandler(c *Config){
 	c.R.POST("/api/contacts", controllers.CreateContact)
 	c.R.PUT("/api/news/:id", controllers.UpdateNews)
 	c.R.DELETE("/api/news/:id", controllers.DeleteNews)
+	c.R.GET("/api/gallery/:id", controllers.GetGalleryByID)
+	c.R.DELETE("/api/gallery/:id", controllers.DeleteGallery)
 
 	api := c.R.Group("/api")
 	api.Use(middleware.AuthMiddleware())
