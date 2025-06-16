@@ -22,7 +22,7 @@ export const transformMinioUrlsInData = <T>(data: T): T => {
 
   // Handle arrays
   if (Array.isArray(data)) {
-    return data.map(item => transformMinioUrlsInData(item)) as unknown as T;
+    return data.map((item) => transformMinioUrlsInData(item)) as unknown as T;
   }
 
   // Handle objects

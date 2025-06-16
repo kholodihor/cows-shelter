@@ -48,7 +48,7 @@ const createRootReducer = (): Reducer<AppState, AnyAction> => {
   const getContactsReducer = (): Reducer<AppState['contacts'], AnyAction> => {
     if (!contactsReducer) {
       // Use dynamic import to avoid circular dependency
-      import('./slices/contactsSlice').then(module => {
+      import('./slices/contactsSlice').then((module) => {
         contactsReducer = module.default;
       });
       // Return a no-op reducer until the real one is loaded

@@ -50,8 +50,9 @@ const Slider = ({
   return (
     <>
       <div
-        className={`mx-auto mt-4 flex w-full items-center ${isPartners ? 'justify-end' : 'justify-between'
-          }`}
+        className={`mx-auto mt-4 flex w-full items-center ${
+          isPartners ? 'justify-end' : 'justify-between'
+        }`}
       >
         {title && (
           <h2 className="flex gap-2 text-[24px] font-medium md:text-[44px] lg:text-[54px] ">
@@ -93,15 +94,18 @@ const Slider = ({
       </div>
 
       <div
-        className={`my-8 flex w-full items-start justify-start ${isReviews ? 'h-[50%]' : 'h-full'
-          } ${isExcursions ? 'h-[50%]' : 'h-full'}`}
+        className={`my-8 flex w-full items-start justify-start ${
+          isReviews ? 'h-[50%]' : 'h-full'
+        } ${isExcursions ? 'h-[50%]' : 'h-full'}`}
       >
         <Swiper
-          className={`relative flex w-full items-center pb-9 ${isReviews
+          className={`relative flex w-full items-center pb-9 ${
+            isReviews
               ? 'min-h-[165px] pt-11 md:min-h-[320px] md:pb-10 md:pt-0'
               : 'h-full'
-            } w-full md:w-[768px] lg:w-full ${isExcursions ? 'h-[330px]' : 'h-full'
-            }
+          } w-full md:w-[768px] lg:w-full ${
+            isExcursions ? 'h-[330px]' : 'h-full'
+          }
           `}
           spaceBetween={10}
           slidesPerView={1}
@@ -119,10 +123,11 @@ const Slider = ({
           {[...Array(slidesLength)].map((_, index) => (
             <SwiperSlide
               key={index}
-              className={`${isPartners
+              className={`${
+                isPartners
                   ? 'md:bottom-[0px] lg:bottom-[28px]'
                   : 'md:bottom-[40px]'
-                } bottom-8 flex h-full w-full items-center justify-center pt-12`}
+              } bottom-8 flex h-full w-full items-center justify-center pt-12`}
             >
               {children}
             </SwiperSlide>

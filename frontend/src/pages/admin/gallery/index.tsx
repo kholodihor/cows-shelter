@@ -61,7 +61,7 @@ const Gallery = () => {
               alt={'image'}
               className="h-full w-full object-cover"
             />
-            <div className="absolute left-0 right-0 top-2 flex w-full items-center justify-end gap-2 px-6  py-2">
+            <div className="absolute inset-x-0 top-2 flex w-full items-center justify-end gap-2 px-6 py-2">
               <button
                 className="rounded-full p-[8px] text-xl text-white transition-all hover:text-error"
                 onClick={() => {

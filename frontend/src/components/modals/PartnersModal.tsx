@@ -95,7 +95,7 @@ const PartnersModal = ({ isOpen, setShowModal }: PartnersModalProps) => {
           </div>
           <div>
             <img
-              className="ml-auto mr-auto"
+              className="mx-auto"
               src={icon_cow}
               alt="icon cow"
               width={40}
@@ -148,7 +148,7 @@ const PartnersModal = ({ isOpen, setShowModal }: PartnersModalProps) => {
           </div>
           <div className="mt-auto">
             <img
-              className="ml-auto mr-auto"
+              className="mx-auto"
               src={icon_cow}
               alt="icon cow"
               width={40}

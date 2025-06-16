@@ -37,7 +37,6 @@ const Edit = ({ setIsModalOpen, data, id, currentType }: EditContactsProps) => {
     defaultValues: {}
   });
 
-
   useEffect(() => {
     setValue(currentType as keyof ContactsFormInput, data);
   }, [currentType, data, setValue]);
@@ -92,20 +91,20 @@ const Edit = ({ setIsModalOpen, data, id, currentType }: EditContactsProps) => {
         <form
           onSubmit={handleSubmit(onSubmit)}
           autoComplete="off"
-          className="w-full max-w-md mx-auto"
+          className="mx-auto w-full max-w-md"
         >
           <div className="flex flex-col gap-6 p-6">
-            <div className="flex justify-between items-center">
+            <div className="flex items-center justify-between">
               <h4 className="text-2xl font-bold">
                 {`Зміна ${
-                  currentType === 'email' 
-                    ? 'електронної пошти' 
-                    : currentType === 'phone' 
-                    ? 'номера телефону' 
+                  currentType === 'email'
+                    ? 'електронної пошти'
+                    : currentType === 'phone'
+                    ? 'номера телефону'
                     : "ім'я"
                 }`}
               </h4>
-              <button 
+              <button
                 type="button"
                 onClick={() => setIsModalOpen(false)}
                 className="text-gray-500 hover:text-gray-700"
@@ -113,23 +112,28 @@ const Edit = ({ setIsModalOpen, data, id, currentType }: EditContactsProps) => {
                 <TfiClose size={24} />
               </button>
             </div>
-            
+
             <p className="text-graphite">
               {`Ваш ${
-                currentType === 'email' 
-                  ? 'електронна пошта' 
-                  : currentType === 'phone' 
-                  ? 'номер телефону' 
+                currentType === 'email'
+                  ? 'електронна пошта'
+                  : currentType === 'phone'
+                  ? 'номер телефону'
                   : "ім'я"
               }: `}
               <span className="text-[17px] font-medium">{data}</span>
             </p>
-            
+
             <div className="mt-4">
               <Controller
                 control={control}
-                name={currentType === 'email' ? 'email' : 
-                      currentType === 'phone' ? 'phone' : 'name'}
+                name={
+                  currentType === 'email'
+                    ? 'email'
+                    : currentType === 'phone'
+                    ? 'phone'
+                    : 'name'
+                }
                 render={({ field }) => (
                   <TextInput
                     {...field}
@@ -158,27 +162,29 @@ const Edit = ({ setIsModalOpen, data, id, currentType }: EditContactsProps) => {
                 )}
               />
             </div>
-            
-            <p className={`text-[17px] ${
-              isDirty && isValid ? 'text-black' : 'text-gray-400'
-            }`}>
+
+            <p
+              className={`text-[17px] ${
+                isDirty && isValid ? 'text-black' : 'text-gray-400'
+              }`}
+            >
               {`Змінити ${
-                currentType === 'email' 
-                  ? 'електронну пошту' 
-                  : currentType === 'phone' 
-                  ? 'номер телефону' 
+                currentType === 'email'
+                  ? 'електронну пошту'
+                  : currentType === 'phone'
+                  ? 'номер телефону'
                   : "ім'я"
               }?`}
             </p>
-            
-            <div className="flex gap-4 mt-4">
+
+            <div className="mt-4 flex gap-4">
               <button
                 type="submit"
                 disabled={!isDirty || !isValid || isProcessing}
-                className={`flex-1 px-6 py-2 font-medium rounded ${
+                className={`flex-1 rounded px-6 py-2 font-medium ${
                   isDirty && isValid && !isProcessing
                     ? 'bg-accent text-white hover:bg-accent/90'
-                    : 'bg-gray-200 text-gray-500 cursor-not-allowed'
+                    : 'cursor-not-allowed bg-gray-200 text-gray-500'
                 }`}
               >
                 {isProcessing ? 'Обробка запиту...' : 'Зберегти зміни'}
@@ -186,7 +192,7 @@ const Edit = ({ setIsModalOpen, data, id, currentType }: EditContactsProps) => {
               <button
                 type="button"
                 onClick={() => setIsModalOpen(false)}
-                className="flex-1 px-6 py-2 border border-gray-300 bg-white text-gray-700 rounded hover:bg-gray-50"
+                className="flex-1 rounded border border-gray-300 bg-white px-6 py-2 text-gray-700 hover:bg-gray-50"
               >
                 Скасувати
               </button>

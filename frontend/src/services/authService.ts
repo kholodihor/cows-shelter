@@ -1,5 +1,9 @@
 import { store } from '../store';
-import { login as loginAction, logout as logoutAction, clearError } from '../store/slices/authSlice';
+import {
+  login as loginAction,
+  logout as logoutAction,
+  clearError
+} from '../store/slices/authSlice';
 import { LoginCredentials } from '../types/auth';
 
 /**
@@ -13,15 +17,15 @@ export const login = async (credentials: LoginCredentials) => {
   try {
     // Clear any previous errors
     store.dispatch(clearError());
-    
+
     // Dispatch login action which will handle the API call
     const result = await store.dispatch(loginAction(credentials));
-    
+
     // If login was rejected, throw an error
     if (loginAction.rejected.match(result)) {
-      throw new Error(result.payload as string || 'Login failed');
+      throw new Error((result.payload as string) || 'Login failed');
     }
-    
+
     return result.payload;
   } catch (error) {
     console.error('Login error:', error);

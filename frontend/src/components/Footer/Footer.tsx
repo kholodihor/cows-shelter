@@ -96,10 +96,10 @@ const Footer = () => {
             </a>
           </li>
           {/* documents */}
-          <li>
+          {/* <li>
             <div className="flex flex-col gap-3">
               <h3 className="title-text"> {t('footer:documents')} </h3>
-              {/* <ul className="flex flex-col gap-2">
+              <ul className="flex flex-col gap-2">
                 {publicDocuments && Array.isArray(publicDocuments) ? (
                   publicDocuments.map((document) => (
                     <li key={document.id}>
@@ -118,9 +118,9 @@ const Footer = () => {
                 ) : (
                   <p>Сервер не відповідає</p>
                 )}
-              </ul> */}
+              </ul>
             </div>
-          </li>
+          </li> */}
           {/* contacts */}
           <li className="flex flex-col gap-3">
             <h3 className="title-text">{t('footer:contacts')}</h3>
@@ -245,9 +245,9 @@ const Footer = () => {
           {/* third col tablet */}
           <li className="lg:hidden">
             <ul className="flex flex-col gap-6">
-              <li className="flex flex-col gap-3">
+              {/* <li className="flex flex-col gap-3">
                 <h3 className="title-text"> {t('footer:documents')} </h3>
-                {/* <ul className="flex flex-col gap-2">
+                <ul className="flex flex-col gap-2">
                   {publicDocuments && Array.isArray(publicDocuments) ? (
                     publicDocuments.map((document) => (
                       <li key={document.id}>
@@ -266,8 +266,8 @@ const Footer = () => {
                   ) : (
                     <p>Сервер не відповідає</p>
                   )}
-                </ul> */}
-              </li>
+                </ul>
+              </li> */}
               <li className="flex flex-col gap-3">
                 <h3 className="title-text">{t('footer:contacts')}</h3>
                 <ul className="flex flex-col gap-2">
@@ -327,10 +327,10 @@ const Footer = () => {
           </li>
 
           {/* third col desktop */}
-          <li className="hidden lg:block">
+          {/* <li className="hidden lg:block">
             <div className="flex flex-col gap-3">
               <h3 className="title-text"> {t('footer:documents')} </h3>
-              {/* <ul className="flex flex-col gap-2">
+              <ul className="flex flex-col gap-2">
                 {publicDocuments && Array.isArray(publicDocuments) ? (
                   publicDocuments.map((document) => (
                     <li key={document.id}>
@@ -349,9 +349,9 @@ const Footer = () => {
                 ) : (
                   <p>Сервер не відповідає</p>
                 )}
-              </ul> */}
+              </ul>
             </div>
-          </li>
+          </li> */}
 
           {/* fourth col */}
           <li className="hidden flex-col gap-8 lg:flex">

@@ -29,12 +29,17 @@ const AppRoutes = () => {
   return (
     <Routes>
       <Route path="/" element={<HomePage />} />
-      
+
       {/* Public auth routes */}
-      <Route path="login" element={isAuthenticated ? <Navigate to="/admin" replace /> : <SignIn />} />
+      <Route
+        path="login"
+        element={
+          isAuthenticated ? <Navigate to="/admin" replace /> : <SignIn />
+        }
+      />
       <Route path="register-user-only-for-developers" element={<Register />} />
       <Route path="reset/:token" element={<ResetPassword />} />
-      
+
       {/* Protected admin routes */}
       <Route element={<ProtectedRoute />}>
         <Route path="admin/*" element={<AdminPage />}>
@@ -56,7 +61,7 @@ const AppRoutes = () => {
           <Route path="newpassword" element={<NewPassword />} />
         </Route>
       </Route>
-      
+
       {/* Catch all other routes */}
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

@@ -63,12 +63,18 @@ export const addContacts = createAsyncThunk(
 
 export const editEmail = createAsyncThunk(
   'contacts/editEmail',
-  async (data: { id?: string; values: Pick<ContactsFormInput, 'email'> }, { rejectWithValue }) => {
+  async (
+    data: { id?: string; values: Pick<ContactsFormInput, 'email'> },
+    { rejectWithValue }
+  ) => {
     try {
       const newData = {
         email: data.values.email
       };
-      const response = await axiosInstance.patch<Contact>(`/contacts/${data.id}`, newData);
+      const response = await axiosInstance.patch<Contact>(
+        `/contacts/${data.id}`,
+        newData
+      );
       return response.data;
     } catch (error) {
       const err = error as AxiosError;
@@ -80,12 +86,18 @@ export const editEmail = createAsyncThunk(
 
 export const editPhone = createAsyncThunk(
   'contacts/editPhone',
-  async (data: { id?: string; values: Pick<ContactsFormInput, 'phone'> }, { rejectWithValue }) => {
+  async (
+    data: { id?: string; values: Pick<ContactsFormInput, 'phone'> },
+    { rejectWithValue }
+  ) => {
     try {
       const newData = {
         phone: data.values.phone
       };
-      const response = await axiosInstance.patch<Contact>(`/contacts/${data.id}`, newData);
+      const response = await axiosInstance.patch<Contact>(
+        `/contacts/${data.id}`,
+        newData
+      );
       return response.data;
     } catch (error) {
       const err = error as AxiosError;
@@ -97,12 +109,18 @@ export const editPhone = createAsyncThunk(
 
 export const editName = createAsyncThunk(
   'contacts/editName',
-  async (data: { id?: string; values: Pick<ContactsFormInput, 'name'> }, { rejectWithValue }) => {
+  async (
+    data: { id?: string; values: Pick<ContactsFormInput, 'name'> },
+    { rejectWithValue }
+  ) => {
     try {
       const newData = {
         name: data.values.name
       };
-      const response = await axiosInstance.patch<Contact>(`/contacts/${data.id}`, newData);
+      const response = await axiosInstance.patch<Contact>(
+        `/contacts/${data.id}`,
+        newData
+      );
       return response.data;
     } catch (error) {
       const err = error as AxiosError;

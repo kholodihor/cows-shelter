@@ -89,7 +89,7 @@ const EditExcursions = () => {
     }
   };
 
-  console.log('IMAGE:', image)
+  console.log('IMAGE:', image);
 
   return (
     <div className="flex min-h-screen w-full flex-col items-start justify-center gap-4 pb-[134px] pl-[48px] pr-[142px] ">
@@ -163,8 +163,9 @@ const EditExcursions = () => {
                     className="h-[220px] w-[365px] object-cover"
                   />
                   <h2
-                    className={`absolute bottom-4 left-4 text-xl font-semibold ${!image ? 'text-gray-400' : 'text-white'
-                      } `}
+                    className={`absolute bottom-4 left-4 text-xl font-semibold ${
+                      !image ? 'text-gray-400' : 'text-white'
+                    } `}
                   >
                     {currentValues.titleUa
                       ? currentValues.titleUa
@@ -241,17 +242,19 @@ const EditExcursions = () => {
             </section>
           </div>
           <p
-            className={`text-base leading-normal ${isDirty && isValid ? 'text-black' : 'text-disabled'
-              }`}
+            className={`text-base leading-normal ${
+              isDirty && isValid ? 'text-black' : 'text-disabled'
+            }`}
           >
             Застосувати зміни?
           </p>
           <div className="flex gap-4">
             <button
-              className={`w-[13.5rem] px-6 py-2 font-medium text-white ${isDirty && isValid
-                ? 'cursor-pointer bg-accent text-black'
-                : 'cursor-not-allowed bg-disabled text-white'
-                }`}
+              className={`w-[13.5rem] px-6 py-2 font-medium text-white ${
+                isDirty && isValid
+                  ? 'cursor-pointer bg-accent text-black'
+                  : 'cursor-not-allowed bg-disabled text-white'
+              }`}
             >
               {isProcessing ? 'Обробка запиту...' : 'Застосувати'}
             </button>

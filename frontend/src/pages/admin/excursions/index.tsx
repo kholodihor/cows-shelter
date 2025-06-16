@@ -71,7 +71,7 @@ const Excursions = () => {
               <h2 className="absolute bottom-4 left-4 text-lg font-semibold text-white">
                 {t(`${excursion.title_ua}`)}
               </h2>
-              <div className="absolute left-0 right-0 top-4 flex w-full items-center justify-between gap-2 px-6  py-2">
+              <div className="absolute inset-x-0 top-4 flex w-full items-center justify-between gap-2 px-6 py-2">
                 <button
                   className="rounded-full p-[8px] text-xl text-white transition-all hover:text-error"
                   onClick={() => {

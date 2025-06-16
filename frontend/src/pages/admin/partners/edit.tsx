@@ -137,10 +137,11 @@ const EditPartner = () => {
 
               <div className="flex gap-4">
                 <button
-                  className={`w-[13.5rem] px-6 py-2 font-medium ${isDirty && isValid
-                    ? 'cursor-pointer bg-accent text-black'
-                    : 'cursor-not-allowed bg-disabled text-white'
-                    }`}
+                  className={`w-[13.5rem] px-6 py-2 font-medium ${
+                    isDirty && isValid
+                      ? 'cursor-pointer bg-accent text-black'
+                      : 'cursor-not-allowed bg-disabled text-white'
+                  }`}
                 >
                   {isProcessing ? 'Обробка запиту...' : 'Розмістити'}
                 </button>

@@ -119,7 +119,10 @@ export const addNewReview = createAsyncThunk(
 
 export const editReview = createAsyncThunk(
   'reviews/editReview',
-  async (reviewData: { id?: string; values: ReviewsFormInput }, { rejectWithValue }) => {
+  async (
+    reviewData: { id?: string; values: ReviewsFormInput },
+    { rejectWithValue }
+  ) => {
     try {
       const updatedReview = {
         name_ua: reviewData.values.nameUa,
@@ -127,11 +130,17 @@ export const editReview = createAsyncThunk(
         review_ua: reviewData.values.reviewUa,
         review_en: reviewData.values.reviewEn
       };
-      const response = await axiosInstance.patch<Review>(`/reviews/${reviewData.id}`, updatedReview);
+      const response = await axiosInstance.patch<Review>(
+        `/reviews/${reviewData.id}`,
+        updatedReview
+      );
       return response.data;
     } catch (error) {
       const err = error as AxiosError;
-      console.error(`Failed to update review with id ${reviewData.id}:`, err.message);
+      console.error(
+        `Failed to update review with id ${reviewData.id}:`,
+        err.message
+      );
       return rejectWithValue('Failed to update review');
     }
   }

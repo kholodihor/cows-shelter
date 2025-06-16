@@ -153,11 +153,15 @@ export const addNewExcursion = createAsyncThunk(
       };
 
       // Create the excursion with JSON data
-      const response = await axiosInstance.post<Excursion>('/excursions', excursionData, {
-        headers: {
-          'Content-Type': 'application/json'
+      const response = await axiosInstance.post<Excursion>(
+        '/excursions',
+        excursionData,
+        {
+          headers: {
+            'Content-Type': 'application/json'
+          }
         }
-      });
+      );
 
       if (!response.data) {
         throw new Error('No data received from server');
@@ -166,7 +170,10 @@ export const addNewExcursion = createAsyncThunk(
       return response.data;
     } catch (error) {
       const err = error as AxiosError;
-      console.error('Error adding excursion:', err.response?.data || err.message);
+      console.error(
+        'Error adding excursion:',
+        err.response?.data || err.message
+      );
       return rejectWithValue(err.response?.data || 'Failed to add excursion');
     }
   }
@@ -174,7 +181,10 @@ export const addNewExcursion = createAsyncThunk(
 
 export const editExcursion = createAsyncThunk(
   'excursions/editExcursion',
-  async (excursionsData: { id?: string; values: ExcursionsFormInput }, { rejectWithValue }) => {
+  async (
+    excursionsData: { id?: string; values: ExcursionsFormInput },
+    { rejectWithValue }
+  ) => {
     try {
       if (!excursionsData.id) {
         throw new Error('Excursion ID is required');
@@ -183,7 +193,10 @@ export const editExcursion = createAsyncThunk(
       // Convert image to base64 if a new image is provided
       let imageData = '';
 
-      if (excursionsData.values.image?.[0] && excursionsData.values.image[0] instanceof File) {
+      if (
+        excursionsData.values.image?.[0] &&
+        excursionsData.values.image[0] instanceof File
+      ) {
         // Check if this is a real file with actual content (not a dummy file)
         // Dummy files created in the edit form have size 0
         if (excursionsData.values.image[0].size > 0) {
@@ -206,9 +219,13 @@ export const editExcursion = createAsyncThunk(
       // Prepare the update data with the same structure as addNewExcursion
       const updateData: Record<string, any> = {
         title_ua: excursionsData.values.titleUa || '',
-        title_en: excursionsData.values.titleEn || excursionsData.values.titleUa || '',
+        title_en:
+          excursionsData.values.titleEn || excursionsData.values.titleUa || '',
         description_ua: excursionsData.values.descriptionUa || '',
-        description_en: excursionsData.values.descriptionEn || excursionsData.values.descriptionUa || '',
+        description_en:
+          excursionsData.values.descriptionEn ||
+          excursionsData.values.descriptionUa ||
+          '',
         amount_of_persons: excursionsData.values.visitorsNumber,
         time_from: excursionsData.values.timeFrom,
         time_to: excursionsData.values.timeTill
@@ -240,8 +257,13 @@ export const editExcursion = createAsyncThunk(
       return response.data;
     } catch (error) {
       const err = error as AxiosError;
-      console.error('Error updating excursion:', err.response?.data || err.message);
-      return rejectWithValue(err.response?.data || 'Failed to update excursion');
+      console.error(
+        'Error updating excursion:',
+        err.response?.data || err.message
+      );
+      return rejectWithValue(
+        err.response?.data || 'Failed to update excursion'
+      );
     }
   }
 );

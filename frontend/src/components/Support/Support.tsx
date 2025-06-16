@@ -46,7 +46,7 @@ const Support = () => {
       />
       <div
         id="donate"
-        className="mx-auto flex flex-col items-start justify-center px-5 py-6 sm:w-[480px] md:w-[768px] md:px-12 md:py-12 lg:w-[1280px] lg:px-[120px] xl:w-[1440px]"
+        className="mx-auto flex flex-col items-start justify-center px-5 py-6 sm:w-[480px] md:w-[768px] md:p-12 lg:w-[1280px] lg:px-[120px] xl:w-[1440px]"
       >
         <h2
           className="my-[20px] flex w-full gap-2 whitespace-nowrap text-[24px] font-medium md:text-[44px] lg:text-[54px] "

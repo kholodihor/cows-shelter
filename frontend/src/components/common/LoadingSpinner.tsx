@@ -13,7 +13,7 @@ const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({
   className = ''
 }) => {
   return (
-    <div className={`flex justify-center items-center ${className}`}>
+    <div className={`flex items-center justify-center ${className}`}>
       <BeatLoader color={color} size={size} />
     </div>
   );

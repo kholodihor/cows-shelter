@@ -44,18 +44,30 @@
       "rights": "2023. © All rights reserved"
     }
   },
+  "errors": {
+    "imageLoadFailed": "Failed to load image. Please try again later."
+  },
+
   "gallery": {
     "gallery": "Gallery",
-    "share": "Share image in social media"
+    "share": "Share image in social media",
+    "noImages": "No images available"
   },
 
   "news": {
-    "news": "News"
+    "title": "News",
+    "viewAll": "View all",
+    "errorLoading": "Failed to load news. Please try again.",
+    "noNews": "No news available at the moment.",
+    "loadMore": "Load more",
+    "calendarIconAlt": "Calendar icon",
+    "publishedOn": "Published on {{date}}"
   },
 
   "partners": {
     "header": "Partners",
     "become_partner": "Become a partner",
+    "noPartners": "No partners available at the moment",
     "text": "Thanks to our partners, cow happiness becomes possible. Thank you for your support and belief in our mission! To do good deeds together is in the very heart!",
     "partners": {
       "uaAnimals": "UAnimals",

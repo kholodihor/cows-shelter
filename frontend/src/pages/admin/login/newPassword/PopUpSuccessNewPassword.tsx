@@ -27,7 +27,7 @@ const PopUpSuccessNewPassword = ({ password }: PopUpSuccessProps) => {
         <img
           src="/admin/bg.svg"
           alt="cow"
-          className="absolute bottom-0 left-0 right-0 z-0"
+          className="absolute inset-x-0 bottom-0 z-0"
         />
       </div>
     </div>

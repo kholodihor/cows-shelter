@@ -43,19 +43,24 @@ const initialState: NewsState = {
   }
 };
 
-export const fetchPosts = createAsyncThunk('news/fetchPosts', async (_, { rejectWithValue }) => {
-  try {
-    const response = await axiosInstance.get<Post[]>('/news');
-    const data = response.data;
-    // Transform MinIO URLs in the response data
-    const transformedData = transformMinioUrlsInData(Array.isArray(data) ? data : []);
-    return transformedData;
-  } catch (error) {
-    const err = error as AxiosError;
-    console.error('Failed to fetch news posts:', err.message);
-    return rejectWithValue('Failed to load news posts');
+export const fetchPosts = createAsyncThunk(
+  'news/fetchPosts',
+  async (_, { rejectWithValue }) => {
+    try {
+      const response = await axiosInstance.get<Post[]>('/news');
+      const data = response.data;
+      // Transform MinIO URLs in the response data
+      const transformedData = transformMinioUrlsInData(
+        Array.isArray(data) ? data : []
+      );
+      return transformedData;
+    } catch (error) {
+      const err = error as AxiosError;
+      console.error('Failed to fetch news posts:', err.message);
+      return rejectWithValue('Failed to load news posts');
+    }
   }
-});
+);
 
 export const fetchPostById = createAsyncThunk(
   'news/fetchPostById',
@@ -179,7 +184,10 @@ export const addNewPost = createAsyncThunk(
 
 export const editPost = createAsyncThunk(
   'news/editPost',
-  async (postData: { id?: string; values: NewsFormInput }, { rejectWithValue }) => {
+  async (
+    postData: { id?: string; values: NewsFormInput },
+    { rejectWithValue }
+  ) => {
     try {
       if (!postData.id) {
         throw new Error('Post ID is required for updating');
@@ -188,7 +196,10 @@ export const editPost = createAsyncThunk(
       // Convert image to base64 if a new image is provided
       let imageData = '';
 
-      if (postData.values.image?.[0] && postData.values.image[0] instanceof File) {
+      if (
+        postData.values.image?.[0] &&
+        postData.values.image[0] instanceof File
+      ) {
         // Check if this is a real file with actual content (not a dummy file)
         // Dummy files created in the edit form have size 0
         if (postData.values.image[0].size > 0) {
@@ -213,7 +224,8 @@ export const editPost = createAsyncThunk(
         title_ua: postData.values.titleUa || '',
         title_en: postData.values.titleEn || postData.values.titleUa || '',
         subtitle_ua: postData.values.subTitleUa || '',
-        subtitle_en: postData.values.subTitleEn || postData.values.subTitleUa || '',
+        subtitle_en:
+          postData.values.subTitleEn || postData.values.subTitleUa || '',
         content_ua: postData.values.contentUa || '',
         content_en: postData.values.contentEn || postData.values.contentUa || ''
       };
@@ -244,7 +256,9 @@ export const editPost = createAsyncThunk(
       return response.data;
     } catch (err) {
       console.error('Error updating post:', err);
-      return rejectWithValue(err instanceof Error ? err.message : 'Failed to update post');
+      return rejectWithValue(
+        err instanceof Error ? err.message : 'Failed to update post'
+      );
     }
   }
 );
@@ -275,7 +289,11 @@ const newsSlice = createSlice({
       })
       .addCase(fetchPostById.fulfilled, (state, action) => {
         state.loading = false;
-        if (action.payload && typeof action.payload === 'object' && 'id' in action.payload) {
+        if (
+          action.payload &&
+          typeof action.payload === 'object' &&
+          'id' in action.payload
+        ) {
           state.posts = [action.payload as Post];
         } else {
           state.error = 'Invalid post data';
@@ -287,7 +305,11 @@ const newsSlice = createSlice({
       })
       .addCase(fetchNewsWithPagination.fulfilled, (state, action) => {
         state.loading = false;
-        if (action.payload && 'posts' in action.payload && 'totalLength' in action.payload) {
+        if (
+          action.payload &&
+          'posts' in action.payload &&
+          'totalLength' in action.payload
+        ) {
           state.paginatedData = action.payload;
         } else {
           state.error = 'Invalid pagination data';

@@ -61,7 +61,7 @@ export const fetchPartnersWithPagination = createAsyncThunk(
       const response = await axiosInstance.get<ResponseWithPagination>(
         `/partners/pagination?page=${query.page}&limit=${query.limit}`
       );
-      let data = response.data || { partners: [], totalLength: 0 };
+      const data = response.data || { partners: [], totalLength: 0 };
       // Transform MinIO URLs in the response data
       if (data.partners && Array.isArray(data.partners)) {
         data.partners = transformMinioUrlsInData(data.partners);
@@ -105,14 +105,17 @@ export const addNewPartner = createAsyncThunk(
     try {
       const file = values.logo[0];
       const logoData = await fileToBase64(file);
-      
+
       const newPartner = {
         name: values.name,
         link: values.link,
         logo_data: logoData
       };
-      
-      const response = await axiosInstance.post<Partner>('/partners', newPartner);
+
+      const response = await axiosInstance.post<Partner>(
+        '/partners',
+        newPartner
+      );
       return response.data;
     } catch (error) {
       const err = error as Error;
@@ -125,7 +128,10 @@ export const addNewPartner = createAsyncThunk(
 // Alias updatePartner as editPartner for backward compatibility
 export const editPartner = createAsyncThunk(
   'partners/updatePartner',
-  async ({ id, values }: { id: string; values: PartnersFormInput }, { rejectWithValue }) => {
+  async (
+    { id, values }: { id: string; values: PartnersFormInput },
+    { rejectWithValue }
+  ) => {
     try {
       // Convert logo to base64 if a new logo is provided
       let logoData = '';
@@ -219,25 +225,28 @@ const partnersSlice = createSlice({
         state.loading = true;
         state.error = null;
       })
-      .addCase(editPartner.fulfilled, (state, action: PayloadAction<Partner>) => {
-        state.loading = false;
-        const index = state.partners.findIndex(
-          (partner) => partner.id === action.payload.id
-        );
-        if (index !== -1) {
-          state.partners[index] = action.payload;
+      .addCase(
+        editPartner.fulfilled,
+        (state, action: PayloadAction<Partner>) => {
+          state.loading = false;
+          const index = state.partners.findIndex(
+            (partner) => partner.id === action.payload.id
+          );
+          if (index !== -1) {
+            state.partners[index] = action.payload;
+          }
+          // Also update in paginated data if it exists
+          const paginatedIndex = state.paginatedData.partners.findIndex(
+            (partner) => partner.id === action.payload.id
+          );
+          if (paginatedIndex !== -1) {
+            state.paginatedData.partners[paginatedIndex] = action.payload;
+          }
         }
-        // Also update in paginated data if it exists
-        const paginatedIndex = state.paginatedData.partners.findIndex(
-          (partner) => partner.id === action.payload.id
-        );
-        if (paginatedIndex !== -1) {
-          state.paginatedData.partners[paginatedIndex] = action.payload;
-        }
-      })
+      )
       .addCase(editPartner.rejected, (state, action) => {
         state.loading = false;
-        state.error = action.payload as string || 'Failed to update partner';
+        state.error = (action.payload as string) || 'Failed to update partner';
         // Don't modify the partners array on error, just update the loading and error states
       })
       .addMatcher(isError, (state, action: PayloadAction<string>) => {

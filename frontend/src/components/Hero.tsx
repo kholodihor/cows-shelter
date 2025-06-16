@@ -19,15 +19,21 @@ const Hero = () => {
           {t('hero:main_title')}
         </h1>
 
-        <ul className="absolute -bottom-[180px] justify-center pl-4 text-[1.069rem] font-medium leading-[1.59rem] text-black md:relative md:bottom-0 md:mb-[340px] md:flex md:text-xl md:text-white lg:mb-[50px] lg:block lg:pl-6 lg:text-[1.375rem] ">
+        <ul
+          className=" absolute -bottom-[180px]  justify-center  pl-4 text-[1.069rem] 
+        font-medium
+         leading-[1.59rem] text-black md:relative md:bottom-0 
+          md:mb-[300px] md:text-xl md:text-white 
+         lg:mb-[50px] lg:block lg:pl-6 lg:text-[1.375rem] "
+        >
           {offersList.map((item) => (
             <li
               key={item}
-              className="relative mr-8  leading-9 lg:mb-6 lg:mr-0 "
+              className="relative mr-8   leading-9 lg:mb-6 lg:mr-0 "
             >
               <span
-                className={` absolute -left-7 bottom-1  px-3  font-semibold  md:hidden lg:block  lg:px-0 ${item === 'hero:shelter' && 'md:hidden lg:block'
-                  }`}
+                className={` absolute -left-7 bottom-1  px-3  font-semibold 
+                   lg:block  lg:px-0 `}
               >
                 .
               </span>

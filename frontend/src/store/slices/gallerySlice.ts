@@ -36,21 +36,26 @@ const initialState: ImageState = {
   }
 };
 
-export const fetchImages = createAsyncThunk('gallery/fetchImages', async (_, { rejectWithValue }) => {
-  try {
-    const response = await axiosInstance.get<Image[]>('/gallery');
-    const data = response.data;
-    console.log('Original gallery data:', data);
-    // Transform MinIO URLs in the response data
-    const transformedData = transformMinioUrlsInData(Array.isArray(data) ? data : []);
-    console.log('Transformed gallery data:', transformedData);
-    return transformedData;
-  } catch (error) {
-    const err = error as AxiosError;
-    console.error('Failed to fetch images:', err.message);
-    return rejectWithValue('Failed to load images');
+export const fetchImages = createAsyncThunk(
+  'gallery/fetchImages',
+  async (_, { rejectWithValue }) => {
+    try {
+      const response = await axiosInstance.get<Image[]>('/gallery');
+      const data = response.data;
+      console.log('Original gallery data:', data);
+      // Transform MinIO URLs in the response data
+      const transformedData = transformMinioUrlsInData(
+        Array.isArray(data) ? data : []
+      );
+      console.log('Transformed gallery data:', transformedData);
+      return transformedData;
+    } catch (error) {
+      const err = error as AxiosError;
+      console.error('Failed to fetch images:', err.message);
+      return rejectWithValue('Failed to load images');
+    }
   }
-});
+);
 
 export const fetchImageById = createAsyncThunk(
   'gallery/fetchImageById',
@@ -119,26 +124,29 @@ export const addNewImage = createAsyncThunk(
   'gallery/addNewImage',
   async (values: NewsFormInput, { rejectWithValue }) => {
     try {
-      if (!values.image || !values.image[0] || !(values.image[0] instanceof File)) {
+      if (
+        !values.image ||
+        !values.image[0] ||
+        !(values.image[0] instanceof File)
+      ) {
         return rejectWithValue('Image file is required');
       }
 
       const file = values.image[0];
       const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
-      
+
       if (file.size > MAX_FILE_SIZE) {
         return rejectWithValue('Image size should be less than 5MB');
       }
 
       // Convert file to base64
       const imageData = await fileToBase64(file);
-      
+
       // Send the post with base64-encoded image data
-      const response = await axiosInstance.post<Image>(
-        '/gallery',
-        { image_data: imageData }
-      );
-      
+      const response = await axiosInstance.post<Image>('/gallery', {
+        image_data: imageData
+      });
+
       return response.data;
     } catch (error) {
       const err = error as AxiosError;

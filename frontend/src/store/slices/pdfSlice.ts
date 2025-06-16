@@ -28,20 +28,23 @@ const initialState: PdfState = {
   error: null
 };
 
-export const fetchPdfs = createAsyncThunk('pdf/fetchPdfs', async (_, { rejectWithValue }) => {
-  try {
-    const response = await axiosInstance.get<Pdf[]>('/pdf');
-    let data = response.data;
-    // Return empty array if no documents are found
-    data = Array.isArray(data) ? data : [];
-    // Transform MinIO URLs in the response data
-    return transformMinioUrlsInData(data);
-  } catch (error) {
-    const err = error as AxiosError;
-    console.error('Failed to fetch PDFs:', err.message);
-    return rejectWithValue('Failed to load PDF documents');
+export const fetchPdfs = createAsyncThunk(
+  'pdf/fetchPdfs',
+  async (_, { rejectWithValue }) => {
+    try {
+      const response = await axiosInstance.get<Pdf[]>('/pdf');
+      let data = response.data;
+      // Return empty array if no documents are found
+      data = Array.isArray(data) ? data : [];
+      // Transform MinIO URLs in the response data
+      return transformMinioUrlsInData(data);
+    } catch (error) {
+      const err = error as AxiosError;
+      console.error('Failed to fetch PDFs:', err.message);
+      return rejectWithValue('Failed to load PDF documents');
+    }
   }
-});
+);
 
 export const fetchPdfById = createAsyncThunk(
   'pdf/fetchPdfById',
@@ -85,12 +88,12 @@ export const addNewPdf = createAsyncThunk(
     try {
       const file = values.document[0];
       const documentData = await fileToBase64(file);
-      
+
       const newPdf = {
         title: values.title,
         document_data: documentData
       };
-      
+
       const response = await axiosInstance.post<Pdf>('/pdf', newPdf);
       // Transform MinIO URL in the response data
       return transformMinioUrlsInData(response.data);
@@ -112,18 +115,24 @@ const pdfSlice = createSlice({
         state.loading = true;
         state.error = null;
       })
-      .addCase(fetchPdfs.fulfilled, (state, action: PayloadAction<Pdf[] | string>) => {
-        state.loading = false;
-        if (Array.isArray(action.payload)) {
-          state.documents = action.payload;
-        } else {
-          state.error = 'Invalid response format from server';
-          state.documents = [];
+      .addCase(
+        fetchPdfs.fulfilled,
+        (state, action: PayloadAction<Pdf[] | string>) => {
+          state.loading = false;
+          if (Array.isArray(action.payload)) {
+            state.documents = action.payload;
+          } else {
+            state.error = 'Invalid response format from server';
+            state.documents = [];
+          }
         }
-      })
+      )
       .addCase(fetchPdfs.rejected, (state, action) => {
         state.loading = false;
-        state.error = action.payload as string || action.error.message || 'Failed to fetch PDFs';
+        state.error =
+          (action.payload as string) ||
+          action.error.message ||
+          'Failed to fetch PDFs';
         state.documents = [];
       })
       .addCase(fetchPdfById.pending, (state) => {

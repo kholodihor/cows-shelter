@@ -1,67 +1,81 @@
-/* eslint-disable prettier/prettier */
-import { useAppDispatch } from '@/store/hook';
-import { openModal } from '@/store/slices/modalSlice';
 import { Post } from '@/store/slices/newsSlice';
 import { useTranslation } from 'react-i18next';
 import LittleArrow from '../icons/LittleArrow';
 
 type NewsBlockProps = {
-  post: Post;
-  onClick?: () => void;
+  posts: Post[];
+  onItemClick: (post: Post) => void;
 };
 
-const NewsBlock = ({ post, onClick }: NewsBlockProps) => {
+const NewsBlock = ({ posts, onItemClick }: NewsBlockProps) => {
   const { language } = useTranslation().i18n;
-  const dispatch = useAppDispatch();
 
-  const handleClick = () => {
-    if (onClick) {
-      onClick();
-    } else {
-      dispatch(openModal({ data: post, type: 'news' }));
-    }
-  };
+  if (!posts || posts.length === 0) {
+    return (
+      <div className="flex h-64 items-center justify-center">
+        <p className="text-gray-500">
+          {language === 'uk'
+            ? 'Немає новин для відображення'
+            : 'No news to display'}
+        </p>
+      </div>
+    );
+  }
 
   return (
-    <div className="h-full">
-      <div 
-        className={`group relative cursor-pointer h-full`}
-        onClick={handleClick}
-      >
-        <img
-          src={post.image_url}
-          alt={`News Image`}
-          className="h-full w-full object-cover"
-        />
+    <div>
+      <ul className="grid h-[210px] pt-[3rem] md:h-[586px] md:grid-cols-2 md:gap-4 lg:grid-cols-3">
+        {posts.map((post, index) => (
+          <li
+            key={post.id || index}
+            className={`group relative cursor-pointer ${
+              index === 0
+                ? 'row-span-2 max-h-[201px] min-w-[302px] max-w-[384px] md:max-h-[531px]'
+                : 'h-[254px] max-w-[384px]'
+            }`}
+          >
+            <img
+              src={post.image_url}
+              alt={language === 'uk' ? post.title_ua : post.title_en}
+              className="h-full w-full object-cover"
+              onError={(e) => {
+                // Fallback image if the main image fails to load
+                const target = e.target as HTMLImageElement;
+                target.src = '/images/placeholder-news.jpg';
+              }}
+            />
 
-        <div className="absolute inset-0 z-20 cursor-pointer bg-black/40 opacity-0 transition duration-300 ease-in-out md:group-hover:opacity-100"></div>
-        <div className="via-opacity-30 absolute inset-0 z-30 flex cursor-pointer flex-col bg-gradient-to-b from-transparent to-black/40">
-          <div className="flex h-full flex-col justify-end text-white">
-            <div className="translate-y-14 space-y-3 p-4 duration-300 ease-in-out md:group-hover:translate-y-0">
-              <h2 className="text-sm font-normal md:text-2xl">
-                {language === 'uk' ? post.title_ua : post.title_en}
-              </h2>
-              <div className="text-sm opacity-0 md:group-hover:opacity-100 lg:text-sm">
-                {language === 'uk' ? post.subtitle_ua : post.subtitle_en}
+            <div className="absolute inset-0 z-20 cursor-pointer bg-black/40 opacity-0 transition duration-300 ease-in-out md:group-hover:opacity-100"></div>
+            <div className="via-opacity-30 absolute inset-0 z-30 flex cursor-pointer flex-col bg-gradient-to-b from-transparent to-black/40">
+              <div className="flex h-full flex-col justify-end text-white">
+                <div className="translate-y-14 space-y-3 p-4 duration-300 ease-in-out md:group-hover:translate-y-0">
+                  <h2 className="text-sm font-normal md:text-2xl">
+                    {language === 'uk' ? post.title_ua : post.title_en}
+                  </h2>
+                  <div className="text-sm opacity-0 md:group-hover:opacity-100 lg:text-sm">
+                    {language === 'uk' ? post.subtitle_ua : post.subtitle_en}
+                  </div>
+                </div>
+              </div>
+              <div>
+                <button
+                  onClick={() => onItemClick(post)}
+                  className="relative mb-6 ml-6 mt-5 flex gap-3 border border-solid border-white py-2 pl-6 pr-2.5 text-white transition-all duration-300 lg:border-transparent lg:group-hover:border-white lg:group-hover:hover:border-accent lg:focus:border-accent lg:active:border-accent"
+                >
+                  <div className="flex items-center">
+                    <span className="text-md px-4 font-medium leading-tight">
+                      {language === 'uk' ? 'Показати більше' : 'Show more'}
+                    </span>
+                  </div>
+                  <div className="pr-4">
+                    <LittleArrow />
+                  </div>
+                </button>
               </div>
             </div>
-            <div className="flex items-center justify-between p-4">
-              <div className="flex items-center gap-2 text-sm">
-                <span className="text-white/70">
-                  {new Date(post.createdAt).toLocaleDateString(language, {
-                    year: 'numeric',
-                    month: 'long',
-                    day: 'numeric',
-                  })}
-                </span>
-              </div>
-              <div className="group/arrow flex h-8 w-8 items-center justify-center rounded-full bg-white/10 transition-all duration-300 hover:bg-white/20">
-                <LittleArrow hovered={false} />
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
+          </li>
+        ))}
+      </ul>
     </div>
   );
 };

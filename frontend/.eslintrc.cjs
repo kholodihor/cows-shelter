@@ -13,7 +13,8 @@ module.exports = {
     'plugin:@typescript-eslint/eslint-recommended',
     'plugin:prettier/recommended',
     'plugin:react/jsx-runtime',
-    'plugin:react-hooks/recommended'
+    'plugin:react-hooks/recommended',
+    'plugin:tailwindcss/recommended'
   ],
   ignorePatterns: [
     'dist',
@@ -25,12 +26,10 @@ module.exports = {
   parser: '@typescript-eslint/parser',
   plugins: ['react-refresh', 'tailwindcss', 'prettier'],
   rules: {
-    'react-refresh/only-export-components': [
-      'warn',
-      { allowConstantExport: true }
-    ],
-    'tailwindcss/no-custom-classname': 0,
     'react-refresh/only-export-components': 0,
+    'tailwindcss/no-custom-classname': 0,
+    'tailwindcss/classnames-order': 'warn',
+    'tailwindcss/no-contradicting-classname': 'error',
     'no-irregular-whitespace': 0,
     'react/no-unescaped-entities': 0,
     '@typescript-eslint/no-explicit-any': 0,

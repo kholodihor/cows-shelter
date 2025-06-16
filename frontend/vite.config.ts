@@ -27,7 +27,12 @@ export default defineConfig({
             console.log('Sending Request to backend:', req.method, req.url);
           });
           proxy.on('proxyRes', (proxyRes, req, _res) => {
-            console.log('Received Response from backend:', req.method, req.url, proxyRes.statusCode);
+            console.log(
+              'Received Response from backend:',
+              req.method,
+              req.url,
+              proxyRes.statusCode
+            );
           });
         }
       }

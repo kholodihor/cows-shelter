@@ -27,6 +27,8 @@ func main() {
 		&models.Password{},
 		&models.Pdf{},
 		&models.Review{},
+		&models.SupportCard{},
+		&models.SupportStep{},
 	)
 
 	if err != nil {

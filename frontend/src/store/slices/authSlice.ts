@@ -1,7 +1,12 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 import { AxiosError } from 'axios';
 import axiosInstance from '../../utils/axios';
-import { AuthState, LoginCredentials, AuthResponse, User } from '../../types/auth';
+import {
+  AuthState,
+  LoginCredentials,
+  AuthResponse,
+  User
+} from '../../types/auth';
 
 // Helper to get initial state from localStorage
 const getInitialState = (): AuthState => {
@@ -34,9 +39,13 @@ export const login = createAsyncThunk(
   'auth/login',
   async (credentials: LoginCredentials, { rejectWithValue }) => {
     try {
-      const response = await axiosInstance.post<AuthResponse>('/login', credentials, {
-        withCredentials: true
-      });
+      const response = await axiosInstance.post<AuthResponse>(
+        '/login',
+        credentials,
+        {
+          withCredentials: true
+        }
+      );
 
       if (!response.data.token) {
         return rejectWithValue('No token received');
@@ -47,9 +56,10 @@ export const login = createAsyncThunk(
       const err = error as AxiosError;
       console.error('Login failed:', err.message);
       // Handle the error response data safely
-      const errorMessage = err.response?.data && typeof err.response.data === 'object'
-        ? (err.response.data as any).message || 'Login failed'
-        : 'Login failed. Please check your credentials.';
+      const errorMessage =
+        err.response?.data && typeof err.response.data === 'object'
+          ? (err.response.data as any).message || 'Login failed'
+          : 'Login failed. Please check your credentials.';
       return rejectWithValue(errorMessage);
     }
   }

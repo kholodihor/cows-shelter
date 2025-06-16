@@ -1,4 +1,10 @@
-import { createContext, useContext, ReactNode, useState, useEffect } from 'react';
+import {
+  createContext,
+  useContext,
+  ReactNode,
+  useState,
+  useEffect
+} from 'react';
 import { useNavigate } from 'react-router-dom';
 import { login as loginApi } from '@/services/authService';
 import { LoginCredentials } from '@/types/auth';
@@ -27,7 +33,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     // Check for existing session on initial load
     const token = localStorage.getItem('token');
     const email = localStorage.getItem('userEmail');
-    
+
     if (token && email) {
       setUser({ email, token });
     }
@@ -39,10 +45,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       const response = await loginApi(credentials);
       const { token, user } = response;
       const { email } = user;
-      
+
       localStorage.setItem('token', token);
       localStorage.setItem('userEmail', email);
-      
+
       setUser({ email, token });
       navigate('/admin');
     } catch (error) {
@@ -59,13 +65,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   return (
-    <AuthContext.Provider 
-      value={{ 
-        user, 
-        loading, 
-        login, 
-        logout, 
-        isAuthenticated: !!user 
+    <AuthContext.Provider
+      value={{
+        user,
+        loading,
+        login,
+        logout,
+        isAuthenticated: !!user
       }}
     >
       {!loading && children}

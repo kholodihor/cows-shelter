@@ -4,12 +4,16 @@ import { useWidth } from '@/hooks/useWidth';
 import { useInView } from 'react-intersection-observer';
 import { setActiveLink } from '@/store/slices/observationSlice';
 import { useAppDispatch, useAppSelector } from '@/store/hook';
-import { partners } from '@/data/partners';
 
+// Redux actions
+import { fetchPartners } from '@/store/slices/partnersSlice';
+
+// Components
 import Slider from '@/components/Slider';
 import PartnersModal from './modals/PartnersModal';
 import { openModal } from '@/store/slices/modalSlice';
 import Loader from './admin/Loader';
+import ErrorMessage from './common/ErrorMessage';
 
 const Partners = () => {
   const { t } = useTranslation();
@@ -18,18 +22,33 @@ const Partners = () => {
 
   const [pagesLength, setPagesLength] = useState(0);
   const [itemsPerPage, setItemsPerPage] = useState(4);
-  const [currentPage, setCurrentPage] = useState(1);
+  // currentPage is not currently used but kept for future pagination
+  const [_currentPage, setCurrentPage] = useState(1);
   const [showModal, setShowModal] = useState(false);
-  const isLoading = useAppSelector((state) => state.partners.loading);
+
+  // Get partners data from Redux store
+  const { partners, loading, error } = useAppSelector((state) => ({
+    partners: state.partners.partners,
+    loading: state.partners.loading,
+    error: state.partners.error
+  }));
+
   const type = useAppSelector((state) => state.modals.type);
   const isModalOpen = useAppSelector((state) => state.modals.isModalOpen);
   const totalLength = partners.length;
 
-  console.log(currentPage);
-
   const { ref, inView } = useInView({
     threshold: 0.5
   });
+
+  // Fetch partners data on component mount
+  useEffect(() => {
+    dispatch(fetchPartners())
+      .unwrap()
+      .catch((error) => {
+        console.error('Failed to fetch partners:', error);
+      });
+  }, [dispatch]);
 
   useEffect(() => {
     if (screenWidth > 1280) {
@@ -72,11 +91,55 @@ const Partners = () => {
     }
   }, [inView, dispatch]);
 
-  if (isLoading) return <Loader />;
+  // Show loading state
+  if (loading) {
+    return (
+      <section id="partners" className="relative bg-[#F3F3F5] py-12">
+        <div className="mx-auto px-5 sm:w-[480px] md:w-[768px] md:px-8 lg:w-[1280px] lg:px-[120px] lg:py-[80px]">
+          <div className="flex h-64 items-center justify-center">
+            <Loader />
+          </div>
+        </div>
+      </section>
+    );
+  }
+
+  // Show error state
+  if (error) {
+    return (
+      <section id="partners" className="relative bg-[#F3F3F5] py-12">
+        <div className="mx-auto px-5 sm:w-[480px] md:w-[768px] md:px-8 lg:w-[1280px] lg:px-[120px] lg:py-[80px]">
+          <ErrorMessage
+            message={error}
+            onRetry={() => dispatch(fetchPartners())}
+          />
+        </div>
+      </section>
+    );
+  }
+
+  // Show empty state if no partners
+  if (partners.length === 0) {
+    return (
+      <section id="partners" className="relative bg-[#F3F3F5] py-12">
+        <div className="mx-auto px-5 sm:w-[480px] md:w-[768px] md:px-8 lg:w-[1280px] lg:px-[120px] lg:py-[80px]">
+          <div className="sectionHeader mb-5 flex-row md:mb-8 lg:mb-14 lg:flex lg:items-center lg:justify-between">
+            <h2 className="flex gap-2 text-[1.5rem] font-medium md:mb-6 md:text-[44px] lg:text-[54px]">
+              {t('partners:header')}
+              <img src="/cow.svg" alt="" className="" />
+            </h2>
+          </div>
+          <p className="text-center text-lg">
+            {t('partners:noPartners', 'No partners available')}
+          </p>
+        </div>
+      </section>
+    );
+  }
 
   return (
     <section id="partners" ref={ref} className="relative bg-[#F3F3F5] ">
-      <div className="mx-auto flex flex-col px-5 py-6 sm:w-[480px] md:w-[768px] md:px-12 md:py-12 lg:w-[1280px] lg:px-[120px] lg:py-[80px] xl:w-[1440px]">
+      <div className="mx-auto flex flex-col px-5 py-6 sm:w-[480px] md:w-[768px] md:p-12 lg:w-[1280px] lg:px-[120px] lg:py-[80px] xl:w-[1440px]">
         <div className="sectionHeader mb-5 flex-row md:mb-8 lg:mb-14 lg:flex  lg:items-center lg:justify-between">
           <h2 className="flex gap-2 text-[1.5rem] font-medium md:mb-6 md:text-[44px] lg:text-[54px]">
             {t('partners:header')}
@@ -101,20 +164,21 @@ const Partners = () => {
                 className="flex flex-col   md:mb-6 md:w-[calc(50%-0.75rem)]"
               >
                 <a
-                  href={partner.href}
+                  href={partner.link}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="partner-scale block w-full transform border-solid border-darkyellow transition-all duration-300 hover:border-b"
+                  className="partner-scale block w-full border-solid border-darkyellow transition-all duration-300 hover:border-b"
                 >
                   <img
-                    className="m-auto mb-6 scale-100 transform"
-                    src={partner.src}
-                    alt={partner.title}
+                    className="m-auto mb-6 scale-100"
+                    src={partner.logo || '/placeholder-partner.png'}
+                    alt={partner.name}
                     width={134}
                     height={134}
+                    loading="lazy"
                   />
                   <p className="mb-4 text-center text-[1rem] leading-relaxed md:text-[20px] lg:text-[22px]">
-                    {partner.title}
+                    {partner.name}
                   </p>
                 </a>
               </li>
@@ -135,20 +199,21 @@ const Partners = () => {
                 partners.map((partner) => (
                   <li key={partner.id} className="flex justify-around">
                     <a
-                      href={partner.href}
+                      href={partner.link}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="partner-scale block w-full transform border-solid border-darkyellow transition-all duration-300 hover:border-b"
+                      className="partner-scale block w-full border-solid border-darkyellow transition-all duration-300 hover:border-b"
                     >
                       <img
-                        className="m-auto mb-6 scale-100 transform md:h-[208px] md:w-[208px] xl:h-[245px] xl:w-[245px]"
-                        src={partner.src}
-                        alt={partner.title}
+                        className="m-auto mb-6 scale-100 object-contain md:h-[208px] md:w-[208px] xl:h-[245px] xl:w-[245px]"
+                        src={partner.logo || '/placeholder-partner.png'}
+                        alt={partner.name}
                         width={208}
                         height={208}
+                        loading="lazy"
                       />
                       <p className=":w-[282px] mb-5 w-[208px] text-center text-[1rem] leading-relaxed md:text-[20px] lg:mb-[4.125rem] lg:text-[22px]">
-                        {partner.title}
+                        {partner.name}
                       </p>
                     </a>
                   </li>

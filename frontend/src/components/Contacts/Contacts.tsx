@@ -17,7 +17,11 @@ import Loader from '../admin/Loader';
 const Contacts = () => {
   const { t } = useTranslation();
   const dispatch = useAppDispatch();
-  const { contacts = [], loading, error } = useAppSelector((state) => ({
+  const {
+    contacts = [],
+    loading,
+    error
+  } = useAppSelector((state) => ({
     contacts: state.contacts.contacts,
     loading: state.contacts.loading,
     error: state.contacts.error
@@ -41,7 +45,7 @@ const Contacts = () => {
 
   // Show loader while loading
   if (loading) return <Loader />;
-  
+
   // Show error message if there's an error
   if (error) {
     return (
@@ -54,7 +58,7 @@ const Contacts = () => {
   // Get the first contact or use empty values if no contacts
   const firstContact = contacts?.[0] || {
     email: 'info@example.com',
-    phone: '+380000000000',
+    phone: '+380000000000'
   };
   return (
     <section>
@@ -62,7 +66,7 @@ const Contacts = () => {
         className={`relative h-[240px] w-full bg-[url('/img_cow_contacts.webp')] bg-cover bg-center bg-no-repeat sm:bg-fixed md:h-[240px] lg:h-[460px]`}
       />
       <div
-        className="mx-auto flex px-5 py-6 xs:w-[320px] xs:flex-col-reverse sm:w-[480px] sm:py-6 md:w-[768px] md:flex-row md:gap-6 md:p-12 md:px-12 lg:w-[1280px] lg:px-[120px] lg:py-20 xl:w-[1440px]"
+        className="mx-auto flex px-5 py-6 xs:w-[320px] xs:flex-col-reverse sm:w-[480px] sm:py-6 md:w-[768px] md:flex-row md:gap-6 md:p-12 lg:w-[1280px] lg:px-[120px] lg:py-20 xl:w-[1440px]"
         id="contacts"
         ref={ref}
       >
@@ -80,10 +84,7 @@ const Contacts = () => {
               </a>
             </li>
             <li>
-              <a
-                href={`tel:${firstContact.phone}`}
-                rel="noopener noreferrer"
-              >
+              <a href={`tel:${firstContact.phone}`} rel="noopener noreferrer">
                 {firstContact.phone}
               </a>
             </li>

@@ -81,7 +81,9 @@ const EditNews = () => {
         dispatch(openAlert(editSuccessResponseMessage('новину')));
         navigate(-1);
       } else if (editPost.rejected.match(resultAction)) {
-        const errorMessage = resultAction.payload as string || 'Сталася помилка при оновленні новини';
+        const errorMessage =
+          (resultAction.payload as string) ||
+          'Сталася помилка при оновленні новини';
         dispatch(openAlert(errorMessage));
       }
     } catch (error) {

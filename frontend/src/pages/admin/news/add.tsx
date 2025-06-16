@@ -44,16 +44,20 @@ const AddPost = () => {
     setImagePreview(file);
   }, [currentValues.image]);
 
-  const onSubmit: SubmitHandler<NewsFormInput> = async (values: NewsFormInput) => {
+  const onSubmit: SubmitHandler<NewsFormInput> = async (
+    values: NewsFormInput
+  ) => {
     try {
       setIsProcessing(true);
       const resultAction = await dispatch(addNewPost(values));
-      
+
       if (addNewPost.fulfilled.match(resultAction)) {
         dispatch(openAlert(addSuccessResponseMessage('новину')));
         navigate(-1);
       } else if (addNewPost.rejected.match(resultAction)) {
-        const errorMessage = resultAction.payload as string || 'Сталася помилка при додаванні новини';
+        const errorMessage =
+          (resultAction.payload as string) ||
+          'Сталася помилка при додаванні новини';
         dispatch(openAlert(errorMessage));
       }
     } catch (error) {

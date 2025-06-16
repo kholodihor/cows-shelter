@@ -66,8 +66,9 @@ const Header = () => {
   return (
     <>
       <header
-        className={`${isScrolled ? 'bg-white' : 'bg-transparent'
-          } fixed left-0 right-0 top-0 z-10 md:py-[15px] lg:py-5`}
+        className={`${
+          isScrolled ? 'bg-white' : 'bg-transparent'
+        } fixed inset-x-0 top-0 z-10 md:py-[15px] lg:py-5`}
       >
         <div className=" mx-auto flex items-center justify-between px-5 text-lg text-white outline-transparent md:px-12 lg:px-[120px]">
           <Link
@@ -87,13 +88,15 @@ const Header = () => {
                 {navLinks.map(({ title, href }) => (
                   <li
                     key={href}
-                    className={`${isScrolled
+                    className={`${
+                      isScrolled
                         ? 'text-black hover:border-b-black focus:border-b-black'
                         : 'hover:border-b-white focus:border-b-white'
-                      } ${activeSection === href
+                    } ${
+                      activeSection === href
                         ? 'border-b border-current'
                         : 'border-transparent'
-                      } border-b  py-2 transition-all duration-300`}
+                    } border-b  py-2 transition-all duration-300`}
                   >
                     <a href={href} onClick={() => handleSectionChange(href)}>
                       {t(title)}
@@ -111,10 +114,11 @@ const Header = () => {
                   onClick={() => {
                     changeLanguage('uk');
                   }}
-                  className={`${language === 'uk'
+                  className={`${
+                    language === 'uk'
                       ? `${isScrolled ? 'text-black' : 'text-white'}`
                       : 'text-disabled'
-                    } uppercase `}
+                  } uppercase `}
                   type="button"
                 >
                   ua
@@ -124,10 +128,11 @@ const Header = () => {
                   onClick={() => {
                     changeLanguage('en');
                   }}
-                  className={`${language === 'en'
+                  className={`${
+                    language === 'en'
                       ? `${isScrolled ? 'text-black' : 'text-white'}`
                       : 'text-disabled'
-                    } uppercase`}
+                  } uppercase`}
                   type="button"
                 >
                   en
@@ -137,10 +142,11 @@ const Header = () => {
             {windowWidth >= 768 && (
               <button
                 onClick={openDonateModal}
-                className={` ${isScrolled
+                className={` ${
+                  isScrolled
                     ? 'bg-accent text-black'
                     : 'border-white bg-inherit'
-                  }  flex h-11 w-[180px] items-center justify-center border text-lg transition-all duration-300 hover:border-transparent hover:bg-lemon hover:text-black focus:bg-lemon focus:text-black active:bg-darkyellow active:text-black lg:w-[180px]`}
+                }  flex h-11 w-[180px] items-center justify-center border text-lg transition-all duration-300 hover:border-transparent hover:bg-lemon hover:text-black focus:bg-lemon focus:text-black active:bg-darkyellow active:text-black lg:w-[180px]`}
                 type="button"
               >
                 {t('header:btn_donate')}

@@ -6,14 +6,20 @@ import { useAppDispatch, useAppSelector } from '@/store/hook';
 import { openModal } from '@/store/slices/modalSlice';
 import { setActiveLink } from '@/store/slices/observationSlice';
 import { useInView } from 'react-intersection-observer';
-import { images } from '@/data/gallery';
 
+// Redux actions
+import { fetchImages } from '@/store/slices/gallerySlice';
+
+// Components
 import ShareIcon from '../icons/ShareIcon';
 import ShareModal from '../modals/ShareModal';
 import ZoomArrow from '@/components/icons/ZoomArrow';
 import Slider from '@/components/Slider';
 import LightBox from './LightBox';
+import LoadingSpinner from '../common/LoadingSpinner';
+import ErrorMessage from '../common/ErrorMessage';
 
+// Styles and utilities
 import '@/styles/gallery.css';
 import { chunkArray } from '@/utils/chunkArray';
 
@@ -24,13 +30,18 @@ const Gallery = () => {
   const [itemsPerPage, setItemsPerPage] = useState(6);
   const [image, setImage] = useState(0);
   const [showModal, setShowModal] = useState(false);
+  const [pagesLength, setPagesLength] = useState(0);
 
   const dispatch = useAppDispatch();
   const isModalOpen = useAppSelector((state) => state.modals.isModalOpen);
   const type = useAppSelector((state) => state.modals.type);
-  const [pagesLength, setPagesLength] = useState(0);
 
-  console.log(images);
+  // Get gallery data from Redux store
+  const { images, loading, error } = useAppSelector((state) => ({
+    images: state.gallery.images,
+    loading: state.gallery.loading,
+    error: state.gallery.error
+  }));
 
   const { ref, inView } = useInView({
     threshold: 0.5
@@ -60,16 +71,14 @@ const Gallery = () => {
     setPagesLength(pagesNumber < 5 ? pagesNumber : 5);
   }, [totalLength, itemsPerPage]);
 
+  // Fetch gallery data on component mount
   useEffect(() => {
-    // dispatch(
-    //   fetchImagesWithPagination({ page: currentPage, limit: itemsPerPage })
-    // )
-    //   .unwrap()
-    //   .then(() => {
-    //     return [];
-    //   })
-    //   .catch((error) => alert(error));
-  }, [currentPage, dispatch, itemsPerPage]);
+    dispatch(fetchImages())
+      .unwrap()
+      .catch((error) => {
+        console.error('Failed to fetch gallery images:', error);
+      });
+  }, [dispatch]);
 
   console.log(currentPage);
   useEffect(() => {
@@ -80,9 +89,46 @@ const Gallery = () => {
     }
   }, [inView, dispatch]);
 
-  const imageChunks = chunkArray(images, Math.ceil(images.length / 4));
+  // Show loading state
+  if (loading) {
+    return (
+      <section id="gallery" className="relative py-12">
+        <div className="mx-auto px-5 sm:w-[480px] md:w-[768px] md:px-8 lg:w-[1280px] lg:px-[55px]">
+          <div className="flex h-64 items-center justify-center">
+            <LoadingSpinner />
+          </div>
+        </div>
+      </section>
+    );
+  }
 
-  console.log(imageChunks);
+  // Show error state
+  if (error) {
+    return (
+      <section id="gallery" className="relative py-12">
+        <div className="mx-auto px-5 sm:w-[480px] md:w-[768px] md:px-8 lg:w-[1280px] lg:px-[55px]">
+          <ErrorMessage
+            message={error}
+            onRetry={() => dispatch(fetchImages())}
+          />
+        </div>
+      </section>
+    );
+  }
+
+  // Show empty state if no images
+  if (images.length === 0) {
+    return (
+      <section id="gallery" className="relative py-12">
+        <div className="mx-auto px-5 sm:w-[480px] md:w-[768px] md:px-8 lg:w-[1280px] lg:px-[55px]">
+          <p className="text-center text-lg">{t('gallery:noImages')}</p>
+        </div>
+      </section>
+    );
+  }
+
+  // Split images into chunks for the slider
+  const imageChunks = chunkArray(images, Math.ceil(images.length / 4));
 
   return (
     <section id="gallery" ref={ref} className="relative">
@@ -98,17 +144,22 @@ const Gallery = () => {
             pagesLength={pagesLength}
           >
             <div className="gridContainer ml-4 w-full ">
-              {images && Array.isArray(images) ? (
-                imageChunks[currentPage - 1].map((item: any, index: number) => (
+              {imageChunks &&
+              imageChunks.length > 0 &&
+              currentPage > 0 &&
+              currentPage <= imageChunks.length ? (
+                imageChunks[currentPage - 1].map((item, index) => (
                   <div
                     key={item.id}
-                    className={`gridItem relative h-[281px]  min-w-[282px] max-w-[456px]  overflow-hidden gridItem--${index + 1
-                      }`}
+                    className={`gridItem gridItem-- relative  h-[281px] min-w-[282px]  max-w-[456px] overflow-hidden${
+                      index + 1
+                    }`}
                   >
                     <img
-                      src={item.image_url}
-                      alt="cow"
+                      src={item.image_url || '/placeholder-gallery.jpg'}
+                      alt="Gallery image"
                       className="h-full w-full object-cover transition duration-500 ease-in hover:scale-110"
+                      loading="lazy"
                     />
 
                     <div
@@ -138,9 +189,10 @@ const Gallery = () => {
               className={`relative mx-auto h-[281px] w-full  min-w-[282px] overflow-hidden sm:w-[70%]`}
             >
               <img
-                src={(images && images[0]?.image_url) || ''}
-                alt="cow"
+                src={images[0]?.image_url || '/placeholder-gallery.jpg'}
+                alt="Gallery image"
                 className="h-full w-full object-cover transition duration-500 ease-in hover:scale-110"
+                loading="lazy"
               />
               <div
                 onClick={() => setShowModal(true)}
@@ -151,7 +203,7 @@ const Gallery = () => {
               </div>
               {showModal && (
                 <ShareModal
-                  activeImage={(images && images[0]?.image_url) || ''}
+                  activeImage={images[0]?.image_url || ''}
                   setShowModal={setShowModal}
                 />
               )}

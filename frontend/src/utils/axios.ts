@@ -1,4 +1,8 @@
-import axios, { AxiosError, AxiosResponse, InternalAxiosRequestConfig } from 'axios';
+import axios, {
+  AxiosError,
+  AxiosResponse,
+  InternalAxiosRequestConfig
+} from 'axios';
 import { store } from '@/store';
 import { openAlert } from '@/store/slices/responseAlertSlice';
 
@@ -7,10 +11,10 @@ const instance = axios.create({
   baseURL: '/api',
   headers: {
     'Content-Type': 'application/json',
-    'Accept': 'application/json',
+    Accept: 'application/json'
   },
   withCredentials: true,
-  timeout: 10000,
+  timeout: 10000
 });
 
 // Request interceptor
@@ -29,10 +33,13 @@ instance.interceptors.request.use(
     }
 
     // Log request details
-    console.log(`Request: ${config.method?.toUpperCase()} ${config.baseURL}${config.url}`, {
-      headers: config.headers,
-      data: config.data
-    });
+    console.log(
+      `Request: ${config.method?.toUpperCase()} ${config.baseURL}${config.url}`,
+      {
+        headers: config.headers,
+        data: config.data
+      }
+    );
 
     return config;
   },
@@ -54,7 +61,9 @@ instance.interceptors.response.use(
       }
 
       // Show error alert
-      store.dispatch(openAlert(message || 'An error occurred while processing your request.'));
+      store.dispatch(
+        openAlert(message || 'An error occurred while processing your request.')
+      );
 
       // Handle specific status codes
       if (status === 401) {
@@ -64,10 +73,14 @@ instance.interceptors.response.use(
       }
     } else if (error.request) {
       // The request was made but no response was received
-      store.dispatch(openAlert('No response from server. Please check your connection.'));
+      store.dispatch(
+        openAlert('No response from server. Please check your connection.')
+      );
     } else {
       // Something happened in setting up the request
-      store.dispatch(openAlert('Error setting up the request. Please try again.'));
+      store.dispatch(
+        openAlert('Error setting up the request. Please try again.')
+      );
     }
     return Promise.reject(error);
   }

@@ -38,8 +38,9 @@ const SingInForm = () => {
       // Navigation happens automatically after successful login in the AuthProvider
     } catch (error) {
       const apiError = error as ApiError;
-      const errorMessage = apiError?.response?.data?.message || 'An error occurred during login';
-      
+      const errorMessage =
+        apiError?.response?.data?.message || 'An error occurred during login';
+
       if (apiError.response?.status === 404) {
         setError('email', {
           type: 'manual',
@@ -67,7 +68,7 @@ const SingInForm = () => {
       className="mx-auto mb-[60px] w-[330px]"
     >
       <div className="mb-4">
-        <label htmlFor="email" className="block mb-2">
+        <label htmlFor="email" className="mb-2 block">
           Email:
         </label>
         <input
@@ -76,16 +77,16 @@ const SingInForm = () => {
           {...register('email')}
           className={`w-full border ${
             errors.email ? 'border-red' : 'border-darkgray'
-          } px-4 py-2 rounded`}
+          } rounded px-4 py-2`}
           placeholder="Введіть свій email"
         />
         {errors.email && (
-          <p className="text-red-500 text-sm mt-1">{errors.email.message}</p>
+          <p className="text-red-500 mt-1 text-sm">{errors.email.message}</p>
         )}
       </div>
 
       <div className="mb-6">
-        <label htmlFor="password" className="block mb-2">
+        <label htmlFor="password" className="mb-2 block">
           Пароль:
         </label>
         <input
@@ -94,18 +95,18 @@ const SingInForm = () => {
           {...register('password')}
           className={`w-full border ${
             errors.password ? 'border-red' : 'border-darkgray'
-          } px-4 py-2 rounded`}
+          } rounded px-4 py-2`}
           placeholder="Введіть пароль"
         />
         {errors.password && (
-          <p className="text-red-500 text-sm mt-1">{errors.password.message}</p>
+          <p className="text-red-500 mt-1 text-sm">{errors.password.message}</p>
         )}
       </div>
 
       <button
         type="button"
         onClick={handleForgotPassword}
-        className="text-blue-500 hover:underline mb-6 block"
+        className="mb-6 block text-blue-500 hover:underline"
       >
         Не пам'ятаю пароль
       </button>
@@ -113,8 +114,8 @@ const SingInForm = () => {
       <button
         type="submit"
         disabled={!isValid || isLoading}
-        className={`w-full bg-blue-500 text-white py-2 px-4 rounded hover:bg-blue-600 transition-colors ${
-          (!isValid || isLoading) ? 'opacity-50 cursor-not-allowed' : ''
+        className={`w-full rounded bg-blue-500 px-4 py-2 text-white transition-colors hover:bg-blue-600 ${
+          !isValid || isLoading ? 'cursor-not-allowed opacity-50' : ''
         }`}
       >
         {isLoading ? 'Вхід...' : 'Увійти'}

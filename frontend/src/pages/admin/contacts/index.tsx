@@ -18,12 +18,17 @@ interface Contact {
 const Contacts = () => {
   const dispatch = useAppDispatch();
   const [modalData, setModalData] = useState('');
-  const [currentEditType, setCurrentEditType] = useState<'name' | 'email' | 'phone'>('email');
+  const [currentEditType, setCurrentEditType] = useState<
+    'name' | 'email' | 'phone'
+  >('email');
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const contacts = useAppSelector((state) => state.contacts.contacts) as Contact[];
+  const contacts = useAppSelector(
+    (state) => state.contacts.contacts
+  ) as Contact[];
   const isLoading = useAppSelector((state) => state.contacts.loading);
   const error = useAppSelector((state) => state.contacts.error);
-  const isAlertOpen = useAppSelector((state) => state.alert?.isAlertOpen) || false;
+  const isAlertOpen =
+    useAppSelector((state) => state.alert?.isAlertOpen) || false;
 
   useEffect(() => {
     dispatch(fetchContacts());
