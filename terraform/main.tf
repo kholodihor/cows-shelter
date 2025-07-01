@@ -1,23 +1,18 @@
 provider "aws" {
   region = var.aws_region
+  
+  default_tags {
+    tags = {
+      Environment = var.environment
+      Project     = var.project_name
+      ManagedBy   = "Terraform"
+    }
+  }
 }
 
 # Create an S3 bucket for file uploads
 resource "aws_s3_bucket" "cows_shelter_uploads" {
   bucket = var.s3_bucket_name
-  acl    = "private"
-
-  versioning {
-    enabled = true
-  }
-
-  server_side_encryption_configuration {
-    rule {
-      apply_server_side_encryption_by_default {
-        sse_algorithm = "AES256"
-      }
-    }
-  }
 
   tags = {
     Name        = "Cows Shelter Uploads"
@@ -25,76 +20,36 @@ resource "aws_s3_bucket" "cows_shelter_uploads" {
   }
 }
 
-# Create an RDS PostgreSQL database
-resource "aws_db_instance" "cows_shelter_db" {
-  identifier             = "cows-shelter-db"
-  engine                 = "postgres"
-  engine_version         = "15.4"
-  instance_class         = var.db_instance_class
-  allocated_storage      = var.db_allocated_storage
-  storage_type           = "gp3"
-  storage_encrypted      = true
-  username               = var.db_username
-  password               = var.db_password
-  db_name                = var.db_name
-  parameter_group_name   = aws_db_parameter_group.cows_shelter_pg.name
-  vpc_security_group_ids = [aws_security_group.rds_sg.id]
-  db_subnet_group_name   = aws_db_subnet_group.cows_shelter_subnet_group.name
-  skip_final_snapshot    = true
-  multi_az               = var.environment == "production"
-  backup_retention_period = 7
-  backup_window          = "03:00-04:00"
-  maintenance_window     = "Mon:04:00-Mon:05:00"
+# Set bucket ACL to private
+# S3 bucket ownership controls - required when ACLs are disabled
+resource "aws_s3_bucket_ownership_controls" "cows_shelter_uploads_ownership" {
+  bucket = aws_s3_bucket.cows_shelter_uploads.id
   
-  tags = {
-    Name        = "cows-shelter-db"
-    Environment = var.environment
+  rule {
+    object_ownership = "BucketOwnerEnforced"
   }
 }
 
-resource "aws_db_parameter_group" "cows_shelter_pg" {
-  name   = "cows-shelter-pg"
-  family = "postgres15"
-
-  parameter {
-    name  = "log_connections"
-    value = "1"
+# Enable versioning
+resource "aws_s3_bucket_versioning" "cows_shelter_uploads_versioning" {
+  bucket = aws_s3_bucket.cows_shelter_uploads.id
+  versioning_configuration {
+    status = "Enabled"
   }
 }
 
-resource "aws_db_subnet_group" "cows_shelter_subnet_group" {
-  name       = "cows-shelter-subnet-group"
-  subnet_ids = aws_subnet.private.*.id
+# Enable server-side encryption
+resource "aws_s3_bucket_server_side_encryption_configuration" "cows_shelter_uploads_encryption" {
+  bucket = aws_s3_bucket.cows_shelter_uploads.id
 
-  tags = {
-    Name = "Cows Shelter DB Subnet Group"
+  rule {
+    apply_server_side_encryption_by_default {
+      sse_algorithm = "AES256"
+    }
   }
 }
 
-# Security Group for RDS
-resource "aws_security_group" "rds_sg" {
-  name        = "cows-shelter-rds-sg"
-  description = "Security group for RDS"
-  vpc_id      = aws_vpc.main.id
-
-  ingress {
-    from_port   = 5432
-    to_port     = 5432
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]  # In production, restrict this to your application servers
-  }
-
-  egress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  tags = {
-    Name = "cows-shelter-rds-sg"
-  }
-}
+# Database resources are now managed by the backend module
 
 # VPC Configuration
 resource "aws_vpc" "main" {
@@ -159,11 +114,45 @@ resource "aws_route_table_association" "public" {
   route_table_id = aws_route_table.public.id
 }
 
-# Outputs
-output "rds_endpoint" {
-  value = aws_db_instance.cows_shelter_db.endpoint
+# Include the backend module
+module "backend" {
+  source = "./backend"
+  
+  aws_region   = var.aws_region
+  environment  = var.environment
+  project_name = var.project_name
+  
+  # MinIO configuration
+  minio_endpoint   = "minio.${var.project_name}.com:9000"
+  minio_access_key = "minioadmin"
+  minio_secret_key = "minioadmin"
+  
+  # Pass other necessary variables to the backend module
+  # db_username  = var.db_username
+  # db_password  = var.db_password
+  # db_name      = var.db_name
 }
 
+# Include the frontend module
+module "frontend" {
+  source = "./frontend"
+  
+  aws_region          = var.aws_region
+  environment         = var.environment
+  project_name        = var.project_name
+  frontend_bucket_name = "${var.project_name}-frontend-${var.environment}"
+  
+  # If you have a domain name, uncomment and set these
+  # domain_name       = "your-domain.com"
+  # route53_zone_id   = "your-route53-zone-id"
+}
+
+# Outputs
 output "s3_bucket_name" {
   value = aws_s3_bucket.cows_shelter_uploads.id
+}
+
+output "backend_url" {
+  value = module.backend.alb_dns_name
+  description = "URL to access the backend API"
 }

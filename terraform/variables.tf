@@ -4,6 +4,12 @@ variable "aws_region" {
   default     = "eu-central-1"
 }
 
+variable "project_name" {
+  description = "Project name used for resource naming"
+  type        = string
+  default     = "cows-shelter"
+}
+
 variable "environment" {
   description = "Environment name (e.g., dev, staging, prod)"
   type        = string
@@ -13,7 +19,7 @@ variable "environment" {
 variable "s3_bucket_name" {
   description = "Name of the S3 bucket for file uploads"
   type        = string
-  default     = "cows-shelter-uploads-${random_id.bucket_suffix.hex}"
+  default     = "cows-shelter-uploads"  # We'll let AWS generate a unique name
 }
 
 variable "db_username" {

@@ -1,0 +1,32 @@
+# AWS Configuration
+aws_region = "eu-central-1"
+
+# Project Configuration
+project_name = "cows-shelter"
+environment  = "prod"
+
+# Network Configuration
+vpc_cidr = "10.0.0.0/16"
+public_subnet_cidrs  = ["10.0.1.0/24", "10.0.2.0/24", "10.0.3.0/24"]
+private_subnet_cidrs = ["10.0.101.0/24", "10.0.102.0/24", "10.0.103.0/24"]
+
+# Database Configuration
+db_instance_class     = "db.t3.micro"
+db_allocated_storage = 20
+db_username          = "postgres"
+db_name              = "cows_shelter"
+
+# MinIO Configuration
+minio_endpoint  = "minio.example.com:9000"
+minio_access_key = "your_minio_access_key"
+minio_secret_key = "your_minio_secret_key"
+
+# ECS Configuration
+desired_count = 2
+
+# Tags
+tags = {
+  Environment = "production"
+  ManagedBy   = "terraform"
+  Project     = "cows-shelter"
+}

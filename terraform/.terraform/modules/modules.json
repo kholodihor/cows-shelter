@@ -1,0 +1,1 @@
+{"Modules":[{"Key":"","Source":"","Dir":"."},{"Key":"backend","Source":"./backend","Dir":"backend"},{"Key":"backend.vpc","Source":"registry.terraform.io/terraform-aws-modules/vpc/aws","Version":"3.19.0","Dir":".terraform/modules/backend.vpc"},{"Key":"frontend","Source":"./frontend","Dir":"frontend"}]}

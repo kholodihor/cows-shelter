@@ -1,10 +1,9 @@
 output "rds_connection_details" {
   description = "RDS connection details"
   value = {
-    endpoint = aws_db_instance.cows_shelter_db.endpoint
-    port     = aws_db_instance.cows_shelter_db.port
-    name     = aws_db_instance.cows_shelter_db.name
-    username = aws_db_instance.cows_shelter_db.username
+    endpoint = module.backend.db_endpoint
+    db_name  = module.backend.db_name
+    username = module.backend.db_username
   }
   sensitive = true
 }
@@ -18,15 +17,46 @@ output "s3_bucket_details" {
   }
 }
 
-output "vpc_details" {
-  description = "VPC details"
+output "alb_details" {
+  description = "ALB details"
   value = {
-    vpc_id     = aws_vpc.main.id
-    cidr_block = aws_vpc.main.cidr_block
+    dns_name = module.backend.alb_dns_name
+    zone_id  = module.backend.alb_zone_id
   }
 }
 
-output "security_group_id" {
-  description = "RDS Security Group ID"
-  value       = aws_security_group.rds_sg.id
+output "ecr_details" {
+  description = "ECR repository details"
+  value = {
+    repository_url = module.backend.ecr_repository_url
+    repository_arn = module.backend.ecr_repository_arn
+  }
+}
+
+output "ecs_details" {
+  description = "ECS service details"
+  value = {
+    cluster_name = module.backend.ecs_cluster_name
+    service_name = module.backend.ecs_service_name
+  }
+}
+
+output "frontend_details" {
+  description = "Frontend deployment details"
+  value = {
+    bucket_name = module.frontend.frontend_bucket_name
+    website_endpoint = module.frontend.frontend_bucket_website_endpoint
+    cloudfront_domain = module.frontend.cloudfront_domain_name
+    frontend_url = module.frontend.frontend_url
+  }
+}
+
+output "frontend_url" {
+  description = "URL to access the frontend application"
+  value       = module.frontend.frontend_url
+}
+
+output "cloudfront_distribution_id" {
+  description = "ID of the CloudFront distribution"
+  value       = module.frontend.cloudfront_distribution_id
 }
