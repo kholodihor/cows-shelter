@@ -3,7 +3,6 @@ package controllers
 import (
 	"fmt"
 	"net/http"
-	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/kholodihor/cows-shelter-backend/config"
@@ -89,7 +88,6 @@ func CreateReview(c *gin.Context) {
 		NameUa:   requestBody.NameUa,
 		ReviewEn: requestBody.ReviewEn,
 		ReviewUa: requestBody.ReviewUa,
-		CreatedAt: time.Now(),
 	}
 
 	if err := config.DB.Create(&review).Error; err != nil {

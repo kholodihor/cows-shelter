@@ -3,7 +3,6 @@ package controllers
 import (
 	"fmt"
 	"net/http"
-	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/kholodihor/cows-shelter-backend/config"
@@ -114,8 +113,7 @@ func CreateGallery(c *gin.Context) {
 
 	// Create the gallery entry in the database
 	gallery := models.Gallery{
-		ImageUrl:  imageURL,
-		CreatedAt: time.Now(),
+		ImageUrl: imageURL,
 	}
 
 	if err := config.DB.Create(&gallery).Error; err != nil {

@@ -1,0 +1,70 @@
+{
+  "family": "cows-shelter-app",
+  "networkMode": "awsvpc",
+  "executionRoleArn": "arn:aws:iam::002824154008:role/cows-shelter-ecs-task-execution-role",
+  "containerDefinitions": [
+    {
+      "name": "app",
+      "image": "002824154008.dkr.ecr.eu-north-1.amazonaws.com/cows-shelter-app:20250702113212",
+      "cpu": 0,
+      "portMappings": [
+        {
+          "containerPort": 8080,
+          "hostPort": 8080,
+          "protocol": "tcp"
+        }
+      ],
+      "essential": true,
+      "environment": [
+        {
+          "name": "S3_BUCKET",
+          "value": "cows-shelter-uploads"
+        },
+        {
+          "name": "AWS_REGION",
+          "value": "eu-north-1"
+        },
+        {
+          "name": "DB_PORT",
+          "value": "5432"
+        },
+        {
+          "name": "GIN_MODE",
+          "value": "release"
+        },
+        {
+          "name": "DB_USER",
+          "value": "postgres"
+        },
+        {
+          "name": "DB_NAME",
+          "value": "cows_shelter"
+        },
+        {
+          "name": "DB_HOST",
+          "value": "cows-shelter-db.cfcuqq86u682.eu-north-1.rds.amazonaws.com"
+        },
+        {
+          "name": "DB_PASSWORD",
+          "value": "OsIUxvObUVCUtIiW"
+        },
+        {
+          "name": "STORAGE_TYPE",
+          "value": "s3"
+        }
+      ],
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "/ecs/cows-shelter-app",
+          "awslogs-region": "eu-north-1",
+          "awslogs-stream-prefix": "ecs"
+        }
+      }
+    }
+  ],
+  "requiresCompatibilities": ["FARGATE"],
+  "cpu": "1024",
+  "memory": "2048",
+  "taskRoleArn": "arn:aws:iam::002824154008:role/cows-shelter-ecs-task-role"
+}

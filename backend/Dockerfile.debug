@@ -1,0 +1,48 @@
+# Build stage
+FROM golang:1.24.2-bookworm AS builder
+
+WORKDIR /app
+
+# Download dependencies
+COPY go.mod go.sum ./
+RUN go mod download
+
+# Copy source code
+COPY . .
+
+# Build the application
+RUN CGO_ENABLED=0 GOOS=linux go build -o app main.go
+
+# Runtime stage
+FROM alpine:3.18
+
+# Install runtime dependencies
+RUN apk --no-cache add bash
+
+# Create a non-root user
+RUN addgroup -S appgroup && adduser -S appuser -G appgroup
+
+# Set working directory
+WORKDIR /app
+
+# Copy the binary from builder
+COPY --from=builder /app/app /app/app
+
+# Copy migration files
+COPY --from=builder /app/migrations /app/migrations
+
+# Copy entrypoint and migrate scripts
+COPY --from=builder /app/entrypoint.sh .
+COPY --from=builder /app/migrate.sh .
+
+# Set permissions and create symlink
+RUN chmod +x /app/entrypoint.sh && \
+    chmod +x /app/app && \
+    chmod +x /app/migrate.sh && \
+    ln -sf /app/migrate.sh /app/migrate
+
+# Switch to non-root user
+USER appuser
+
+# Debug command to list files and check permissions
+CMD ["sh", "-c", "ls -la /app && echo '---' && ls -la /app/migrations && echo '---' && cat /app/entrypoint.sh && echo '---' && cat /app/migrate.sh && echo '---' && /app/entrypoint.sh"]

@@ -55,7 +55,10 @@ const News = () => {
           <h1>Додати Новину</h1>
         </div>
         {posts.map((post) => (
-          <div key={post.id} className="relative h-[180px] w-[288px] text-left">
+          <div
+            key={`article-${post.id}`}
+            className="relative h-[180px] w-[288px] text-left"
+          >
             <img
               src={post.image_url}
               alt={post.title_ua}

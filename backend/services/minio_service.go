@@ -14,10 +14,15 @@ import (
 	"github.com/minio/minio-go/v7"
 )
 
+// Ensure MinioService implements StorageService
+var _ StorageService = (*MinioService)(nil)
+
 // MinioService handles file operations with MinIO
 type MinioService struct {
 	client     *minio.Client
 	bucketName string
+	endpoint   string
+	useSSL     bool
 }
 
 // NewMinioService creates a new MinioService instance
@@ -28,11 +33,29 @@ func NewMinioService() (*MinioService, error) {
 
 	bucketName := os.Getenv("MINIO_BUCKET")
 	if bucketName == "" {
-		bucketName = "cows-shelter"
+		bucketName = os.Getenv("STORAGE_BUCKET")
+		if bucketName == "" {
+			bucketName = "cows-shelter"
+		}
 	}
+
+	endpoint := os.Getenv("MINIO_ENDPOINT")
+	if endpoint == "" {
+		endpoint = "minio:9000"
+	}
+
+	useSSL := os.Getenv("MINIO_USE_SSL") != "false"
+	if useSSL {
+		if os.Getenv("MINIO_USE_SSL") == "" && os.Getenv("STORAGE_USE_SSL") == "false" {
+			useSSL = false
+		}
+	}
+
 	return &MinioService{
 		client:     config.MinioClient,
 		bucketName: bucketName,
+		endpoint:   endpoint,
+		useSSL:     useSSL,
 	}, nil
 }
 
@@ -57,25 +80,8 @@ func (s *MinioService) UploadFile(ctx context.Context, fileHeader *multipart.Fil
 		return "", fmt.Errorf("failed to upload file to MinIO: %v", err)
 	}
 
-	// For production use, you might want to return a direct URL instead of a presigned one
-	// This depends on your MinIO configuration and public accessibility
-	endpoint := os.Getenv("MINIO_ENDPOINT")
-	if endpoint == "" {
-		endpoint = "minio:9000"
-	}
-	useSSL := os.Getenv("MINIO_USE_SSL") == "true"
-	
-	var baseURL string
-	if useSSL {
-		baseURL = fmt.Sprintf("https://%s", endpoint)
-	} else {
-		baseURL = fmt.Sprintf("http://%s", endpoint)
-	}
-	
-	// Return a direct URL if MinIO is publicly accessible
-	directURL := fmt.Sprintf("%s/%s/%s", baseURL, s.bucketName, objectName)
-	
-	return directURL, nil
+	// Return the direct URL for the uploaded file
+	return s.GetObjectURL(objectName), nil
 }
 
 // UploadBase64 uploads a base64-encoded image to MinIO and returns the URL
@@ -112,24 +118,8 @@ func (s *MinioService) UploadBase64(ctx context.Context, base64Data, folder stri
 		return "", fmt.Errorf("failed to upload base64 data to MinIO: %v", err)
 	}
 
-	// Generate a URL for the uploaded file
-	endpoint := os.Getenv("MINIO_ENDPOINT")
-	if endpoint == "" {
-		endpoint = "minio:9000"
-	}
-	useSSL := os.Getenv("MINIO_USE_SSL") == "true"
-	
-	var baseURL string
-	if useSSL {
-		baseURL = fmt.Sprintf("https://%s", endpoint)
-	} else {
-		baseURL = fmt.Sprintf("http://%s", endpoint)
-	}
-	
-	// Return a direct URL
-	directURL := fmt.Sprintf("%s/%s/%s", baseURL, s.bucketName, objectName)
-	
-	return directURL, nil
+	// Return the direct URL for the uploaded file
+	return s.GetObjectURL(objectName), nil
 }
 
 // DeleteFile deletes a file from MinIO
@@ -151,8 +141,32 @@ func (s *MinioService) DeleteFile(ctx context.Context, objectName string) error 
 	return nil
 }
 
+// GetObjectURL returns the public URL for an object
+func (s *MinioService) GetObjectURL(objectKey string) string {
+	// Handle cases where objectKey might be a full URL
+	if strings.HasPrefix(objectKey, "http") {
+		return objectKey
+	}
+
+	// Construct the URL based on the endpoint and bucket
+	var baseURL string
+	if s.useSSL {
+		baseURL = fmt.Sprintf("https://%s", s.endpoint)
+	} else {
+		baseURL = fmt.Sprintf("http://%s", s.endpoint)
+	}
+
+	// Return the direct URL for the object
+	return fmt.Sprintf("%s/%s/%s", strings.TrimSuffix(baseURL, "/"), s.bucketName, strings.TrimPrefix(objectKey, "/"))
+}
+
 // ExtractObjectName extracts the object name from a MinIO URL
 func (s *MinioService) ExtractObjectName(url string) string {
+	// If it's not a full URL, return as is
+	if !strings.Contains(url, "://") {
+		return url
+	}
+
 	// Extract the object name from the URL
 	parts := strings.Split(url, s.bucketName+"/")
 	if len(parts) > 1 {

@@ -3,7 +3,6 @@ package controllers
 import (
 	"fmt"
 	"net/http"
-	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/kholodihor/cows-shelter-backend/config"
@@ -119,7 +118,6 @@ func CreateExcursion(c *gin.Context) {
 		TimeTo:          req.TimeTo,
 		TimeFrom:        req.TimeFrom,
 		AmountOfPersons: req.AmountOfPersons,
-		CreatedAt:       time.Now(),
 	}
 
 	// Handle image upload

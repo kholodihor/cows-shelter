@@ -1,0 +1,80 @@
+{
+  "containerDefinitions": [
+    {
+      "name": "app",
+      "image": "002824154008.dkr.ecr.eu-north-1.amazonaws.com/cows-shelter-app:20250701153658",
+      "cpu": 0,
+      "portMappings": [
+        {
+          "containerPort": 8080,
+          "hostPort": 8080,
+          "protocol": "tcp"
+        }
+      ],
+      "essential": true,
+      "environment": [
+        {
+          "name": "DB_PORT",
+          "value": "5432"
+        },
+        {
+          "name": "GIN_MODE",
+          "value": "release"
+        },
+        {
+          "name": "DB_USER",
+          "value": "postgres"
+        },
+        {
+          "name": "MINIO_ACCESS_KEY",
+          "value": "minioadmin"
+        },
+        {
+          "name": "MINIO_USE_SSL",
+          "value": "true"
+        },
+        {
+          "name": "DB_NAME",
+          "value": "cows_shelter"
+        },
+        {
+          "name": "MINIO_ENDPOINT",
+          "value": "minio.cows-shelter.com:9000"
+        },
+        {
+          "name": "MINIO_SECRET_KEY",
+          "value": "minioadmin"
+        },
+        {
+          "name": "DB_HOST",
+          "value": "cows-shelter-db.cfcuqq86u682.eu-north-1.rds.amazonaws.com"
+        },
+        {
+          "name": "DB_PASSWORD",
+          "value": "OsIUxvObUVCUtIiW"
+        }
+      ],
+      "mountPoints": [],
+      "volumesFrom": [],
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "/ecs/cows-shelter-app",
+          "awslogs-region": "eu-north-1",
+          "awslogs-stream-prefix": "ecs"
+        }
+      },
+      "systemControls": []
+    }
+  ],
+  "family": "cows-shelter-app",
+  "executionRoleArn": "arn:aws:iam::002824154008:role/cows-shelter-ecs-task-execution-role",
+  "networkMode": "awsvpc",
+  "volumes": [],
+  "placementConstraints": [],
+  "requiresCompatibilities": [
+    "FARGATE"
+  ],
+  "cpu": "1024",
+  "memory": "2048"
+}

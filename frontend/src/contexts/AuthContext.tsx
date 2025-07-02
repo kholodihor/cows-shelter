@@ -7,7 +7,7 @@ import {
 } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { login as loginApi } from '@/services/authService';
-import { LoginCredentials } from '@/types/auth';
+import { LoginCredentials, AuthResponse } from '@/types/auth';
 
 type User = {
   email: string;
@@ -42,14 +42,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const login = async (credentials: LoginCredentials) => {
     try {
-      const response = await loginApi(credentials);
+      const response = await loginApi(credentials) as AuthResponse;
       const { token, user } = response;
-      const { email } = user;
 
       localStorage.setItem('token', token);
-      localStorage.setItem('userEmail', email);
+      localStorage.setItem('userEmail', user.email);
 
-      setUser({ email, token });
+      setUser({ email: user.email, token });
       navigate('/admin');
     } catch (error) {
       console.error('Login failed:', error);

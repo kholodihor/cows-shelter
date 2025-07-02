@@ -17,7 +17,7 @@ func Connect() {
 	dbPassword := utils.GetEnv("DB_PASSWORD", "")
 	dbName := utils.GetEnv("DB_NAME", "cows_shelter")
 
-	dsn := fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=%s sslmode=disable TimeZone=UTC",
+	dsn := fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=%s sslmode=require TimeZone=UTC",
 		dbHost, dbUser, dbPassword, dbName, dbPort)
 
 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})

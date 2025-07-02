@@ -10,9 +10,6 @@
     "lint:styles": "eslint . --ext ts,tsx --fix --rule 'tailwindcss/classnames-order: 2' --rule 'tailwindcss/no-contradicting-classname: 2'",
     "format": "prettier --write 'src/**/*.{js,jsx,ts,tsx,css}'",
     "preview": "vite preview",
-    "precommit": "lint-staged",
-    "commit": "git-cz",
-    "prepare": "husky install",
     "ts-check": "tsc --project tsconfig.json --pretty --noEmit && echo "
   },
   "dependencies": {
@@ -70,22 +67,5 @@
     "tailwindcss": "^3.3.3",
     "typescript": "^5.0.2",
     "vite": "^4.4.5"
-  },
-  "lint-staged": {
-    "src/**/*.{js,jsx,ts,tsx}": [
-      "eslint --fix",
-      "prettier --write"
-    ]
-  },
-  "husky": {
-    "hooks": {
-      "pre-commit": "lint-staged",
-      "commit-msg": "commitlint -E HUSKY_GIT_PARAMS"
-    }
-  },
-  "config": {
-    "commitizen": {
-      "path": "cz-conventional-changelog"
-    }
   }
 }

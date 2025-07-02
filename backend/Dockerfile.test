@@ -1,0 +1,18 @@
+FROM golang:1.24.2-bookworm
+
+WORKDIR /app
+
+# Copy the migrate.sh script
+COPY migrate.sh .
+
+# Make scripts executable and create symlink
+RUN chmod +x /app/migrate.sh && \
+    ln -sf /app/migrate.sh /app/migrate
+
+# Install runtime dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    bash \
+    && rm -rf /var/lib/apt/lists/*
+
+# Command to verify the files
+CMD ["sh", "-c", "ls -la /app && echo 'Content of migrate.sh:' && cat /app/migrate.sh && echo 'Checking symlink:' && ls -la /app/migrate"]

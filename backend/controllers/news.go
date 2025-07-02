@@ -3,13 +3,13 @@ package controllers
 import (
 	"fmt"
 	"net/http"
-	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/kholodihor/cows-shelter-backend/config"
 	"github.com/kholodihor/cows-shelter-backend/models"
 	"github.com/kholodihor/cows-shelter-backend/services"
 )
+
 func GetAllNews(c *gin.Context) {
 	news := []models.News{}
 	config.DB.Find(&news)
@@ -101,7 +101,6 @@ func CreateNews(c *gin.Context) {
 		SubtitleUa: req.SubtitleUa,
 		ContentEn:  req.ContentEn,
 		ContentUa:  req.ContentUa,
-		CreatedAt:  time.Now(),
 	}
 
 	// Handle image upload if present

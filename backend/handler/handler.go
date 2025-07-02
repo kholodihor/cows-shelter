@@ -1,18 +1,90 @@
 package handler
 
 import (
+	"fmt"
+	"net/http"
+	"time"
+
 	"github.com/gin-gonic/gin"
+	"github.com/kholodihor/cows-shelter-backend/config"
 	"github.com/kholodihor/cows-shelter-backend/controllers"
 	"github.com/kholodihor/cows-shelter-backend/middleware"
+	"github.com/kholodihor/cows-shelter-backend/storage"
 )
 
 type Handler struct{}
 
-type Config struct{
-	R *gin.Engine
+type Config struct {
+	R       *gin.Engine
+	Storage storage.Service
 }
 
-func RouterHandler(c *Config){
+// HealthCheckResponse represents the health check response structure
+type HealthCheckResponse struct {
+	Status    string    `json:"status"`
+	Timestamp time.Time `json:"timestamp"`
+	Database  string    `json:"database,omitempty"`
+	Storage   string    `json:"storage,omitempty"`
+}
+
+// HealthCheck performs health checks for the application
+func HealthCheck(c *gin.Context) {
+	healthStatus := HealthCheckResponse{
+		Status:    "UP",
+		Timestamp: time.Now().UTC(),
+	}
+
+	// Check database connection
+	db := config.DB
+	if db == nil {
+		healthStatus.Database = "NOT CONFIGURED"
+		healthStatus.Status = "DEGRADED"
+	} else {
+		sqlDB, err := db.DB()
+		if err != nil {
+			healthStatus.Database = fmt.Sprintf("ERROR: %v", err)
+			healthStatus.Status = "DEGRADED"
+		} else {
+			if err := sqlDB.Ping(); err != nil {
+				healthStatus.Database = fmt.Sprintf("DOWN: %v", err)
+				healthStatus.Status = "DEGRADED"
+			} else {
+				healthStatus.Database = "UP"
+			}
+		}
+	}
+
+	// Check storage service
+	storageSvc := middleware.GetStorage(c.Request.Context())
+	if storageSvc == nil {
+		healthStatus.Storage = "NOT CONFIGURED: Storage service not initialized"
+		healthStatus.Status = "DEGRADED"
+	} else {
+		// Simple storage health check - try to list objects
+		_, err := storageSvc.ListObjects(c.Request.Context(), "", 1)
+		if err != nil {
+			healthStatus.Storage = fmt.Sprintf("DOWN: %v", err)
+			healthStatus.Status = "DEGRADED"
+		} else {
+			healthStatus.Storage = "UP"
+		}
+	}
+
+	// Determine final status
+	if healthStatus.Database == "UP" && healthStatus.Storage == "UP" && healthStatus.Status != "DEGRADED" {
+		healthStatus.Status = "UP"
+	} else if healthStatus.Status != "DEGRADED" {
+		healthStatus.Status = "DEGRADED"
+	}
+
+	c.JSON(http.StatusOK, healthStatus)
+}
+
+func RouterHandler(c *Config) {
+	// Health check endpoint
+	c.R.GET("/health", HealthCheck)
+
+	// API routes
 	c.R.POST("/api/user", controllers.CreateUser)
 	c.R.POST("/api/login", controllers.LoginUser)
 	c.R.GET("/api/contacts", controllers.GetContacts)
@@ -45,9 +117,9 @@ func RouterHandler(c *Config){
 	c.R.PATCH("/api/contacts/:id", controllers.UpdateContact)
 	c.R.PUT("/api/news/:id", controllers.UpdateNews)
 	c.R.PUT("/api/excursions/:id", controllers.UpdateExcursion)
-	c.R.PATCH("/api/excursions/:id", controllers.UpdateExcursion)  // Add PATCH support for frontend compatibility
+	c.R.PATCH("/api/excursions/:id", controllers.UpdateExcursion) // Add PATCH support for frontend compatibility
 	c.R.PUT("/api/partners/:id", controllers.UpdatePartner)
-	c.R.PATCH("/api/partners/:id", controllers.UpdatePartner)  // Add PATCH support for consistency
+	c.R.PATCH("/api/partners/:id", controllers.UpdatePartner) // Add PATCH support for consistency
 	c.R.DELETE("/api/news/:id", controllers.DeleteNews)
 	c.R.GET("/api/gallery/:id", controllers.GetGalleryByID)
 	c.R.DELETE("/api/gallery/:id", controllers.DeleteGallery)

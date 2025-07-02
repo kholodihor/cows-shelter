@@ -2,7 +2,6 @@ package controllers
 
 import (
 	"net/http"
-	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/kholodihor/cows-shelter-backend/config"
@@ -72,7 +71,6 @@ func CreatePdf(c *gin.Context) {
 	pdf := models.Pdf{
 		Title:       req.Title,
 		DocumentUrl: documentURL,
-		CreatedAt:   time.Now(),
 	}
 
 	if err := config.DB.Create(&pdf).Error; err != nil {

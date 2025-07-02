@@ -2,10 +2,11 @@ package main
 
 import (
 	"context"
+	"flag"
+	"fmt"
 	"log"
 	"net/http"
 	"os"
-	"os/exec"
 	"os/signal"
 	"syscall"
 	"time"
@@ -13,17 +14,79 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/kholodihor/cows-shelter-backend/config"
 	"github.com/kholodihor/cows-shelter-backend/handler"
+	"github.com/kholodihor/cows-shelter-backend/middleware"
+	"github.com/kholodihor/cows-shelter-backend/models"
+	"golang.org/x/crypto/bcrypt"
 )
 
-// runMigrations runs database migrations
+// runMigrations runs database migrations directly without requiring Go toolchain
 func runMigrations() error {
-	cmd := exec.Command("go", "run", "migrations/migrate.go")
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	return cmd.Run()
+	// Initialize database connection
+	config.Connect()
+	
+	// Run migrations
+	if err := config.DB.AutoMigrate(
+		&models.User{},
+		&models.News{},
+		&models.Excursion{},
+		&models.Partner{},
+		&models.Gallery{},
+		&models.Review{},
+		&models.Pdf{},
+	); err != nil {
+		return fmt.Errorf("failed to run migrations: %v", err)
+	}
+	
+	log.Println("Migrations completed successfully")
+	return nil
+}
+
+// createAdminUser creates or updates an admin user with the given email and password
+func createAdminUser(email, password string) error {
+	// Initialize database connection
+	config.Connect()
+	
+	// Check if admin user already exists
+	var user models.User
+	result := config.DB.Where("email = ?", email).First(&user)
+	
+	hasher := bcrypt.DefaultCost
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), hasher)
+	if err != nil {
+		return fmt.Errorf("failed to hash password: %v", err)
+	}
+
+	userData := models.User{
+		Email:    email,
+		Password: string(hashedPassword),
+		Role:     "admin",
+	}
+
+	if result.Error != nil {
+		// User doesn't exist, create new admin
+		if err := config.DB.Create(&userData).Error; err != nil {
+			return fmt.Errorf("failed to create admin user: %v", err)
+		}
+		log.Printf("Created new admin user: %s", email)
+	} else {
+		// Update existing user to admin
+		user.Role = "admin"
+		user.Password = string(hashedPassword)
+		if err := config.DB.Save(&user).Error; err != nil {
+			return fmt.Errorf("failed to update user to admin: %v", err)
+		}
+		log.Printf("Updated user to admin: %s", email)
+	}
+
+	return nil
 }
 
 func main() {
+	// Handle command-line flags
+	createAdminCmd := flag.NewFlagSet("create-admin", flag.ExitOnError)
+	adminEmail := createAdminCmd.String("email", "", "Admin user email")
+	adminPassword := createAdminCmd.String("password", "", "Admin user password")
+
 	// Check if migrate command is provided
 	if len(os.Args) > 1 && os.Args[1] == "migrate" {
 		log.Println("Running database migrations...")
@@ -31,6 +94,24 @@ func main() {
 			log.Fatalf("Failed to run migrations: %v\n", err)
 		}
 		log.Println("Migrations completed successfully")
+		return
+	}
+
+	// Handle create-admin command
+	if len(os.Args) > 1 && os.Args[1] == "create-admin" {
+		if err := createAdminCmd.Parse(os.Args[2:]); err != nil {
+			log.Fatalf("Failed to parse flags: %v\n", err)
+		}
+
+		if *adminEmail == "" || *adminPassword == "" {
+			log.Fatal("Both --email and --password are required")
+		}
+
+		if err := createAdminUser(*adminEmail, *adminPassword); err != nil {
+			log.Fatalf("Failed to create admin user: %v\n", err)
+		}
+
+		log.Printf("Successfully created/updated admin user: %s\n", *adminEmail)
 		return
 	}
 
@@ -45,6 +126,16 @@ func main() {
 		log.Printf("Warning: Failed to initialize MinIO client: %v\n", err)
 	} else {
 		log.Println("MinIO client initialized successfully")
+	}
+
+	// Initialize storage service
+	storageService, err := config.NewStorageService()
+	if err != nil {
+		log.Printf("Warning: Failed to initialize storage service: %v\n", err)
+	} else {
+		log.Printf("Storage service initialized successfully (type: %s)", storageService)
+		// Add storage middleware only if storage service was initialized successfully
+		router.Use(middleware.GinStorageMiddleware(storageService))
 	}
 
 	// Add CORS middleware
@@ -72,6 +163,7 @@ func main() {
 		c.Next()
 	})
 
+	// Initialize routes with the router
 	handler.RouterHandler(&handler.Config{
 		R: router,
 	})

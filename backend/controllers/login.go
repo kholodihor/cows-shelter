@@ -39,9 +39,11 @@ func LoginUser(c *gin.Context) {
 		return
 	}
 
-	// Return token and email
+	// Return the token and user info
 	c.JSON(http.StatusOK, gin.H{
 		"token": token,
-		"email": user.Email,
+		"user": gin.H{
+			"email": user.Email,
+		},
 	})
 }

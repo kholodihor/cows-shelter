@@ -2,4 +2,4 @@
 set -e
 
 echo "Running database migrations..."
-/usr/local/bin/app migrate
+/app/app migrate
