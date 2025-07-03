@@ -19,6 +19,8 @@
 **/terraform.tfvars.json
 **/*.tfvars
 **/*.tfvars.json
+**/*/variables.tf
+**/.terraform.lock.hcl
 
 # AWS Credentials
 **/.aws/credentials
@@ -101,3 +103,5 @@ dist/
 *.sln
 *.sw?
 .terraform/
+..bfg-report/
+
