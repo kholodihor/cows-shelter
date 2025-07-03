@@ -3,7 +3,8 @@ import {
   AnyAction,
   createAsyncThunk,
   createSlice,
-  PayloadAction
+  PayloadAction,
+  ActionReducerMapBuilder
 } from '@reduxjs/toolkit';
 import { AxiosError } from 'axios';
 import axiosInstance from '@/utils/axios';
@@ -19,12 +20,15 @@ type ResponseWithPagination = {
   totalLength: number;
 };
 
-type ImageState = {
+export interface ImageState {
   images: Image[];
   paginatedData: ResponseWithPagination;
   loading: boolean;
   error: string | null;
-};
+}
+
+// Helper type for error handling in async thunks
+type RejectWithValue = (value: string) => any;
 
 const initialState: ImageState = {
   images: [],
@@ -36,9 +40,9 @@ const initialState: ImageState = {
   }
 };
 
-export const fetchImages = createAsyncThunk(
+export const fetchImages = createAsyncThunk<Image[], void, { rejectValue: string }>(
   'gallery/fetchImages',
-  async (_, { rejectWithValue }) => {
+  async (_, { rejectWithValue }: { rejectWithValue: RejectWithValue }) => {
     try {
       const response = await axiosInstance.get<Image[]>('/gallery');
       const data = response.data;
@@ -57,9 +61,9 @@ export const fetchImages = createAsyncThunk(
   }
 );
 
-export const fetchImageById = createAsyncThunk(
+export const fetchImageById = createAsyncThunk<Image, string, { rejectValue: string }>(
   'gallery/fetchImageById',
-  async (id: string, { rejectWithValue }) => {
+  async (id: string, { rejectWithValue }: { rejectWithValue: RejectWithValue }) => {
     try {
       const response = await axiosInstance.get<Image>(`/gallery/${id}`);
       // Transform MinIO URLs in the response data
@@ -73,9 +77,9 @@ export const fetchImageById = createAsyncThunk(
   }
 );
 
-export const fetchImagesWithPagination = createAsyncThunk(
+export const fetchImagesWithPagination = createAsyncThunk<ResponseWithPagination, { page: number; limit: number }, { rejectValue: string }>(
   'gallery/fetchImagesWithPagination',
-  async (query: { page: number; limit: number }, { rejectWithValue }) => {
+  async (query: { page: number; limit: number }, { rejectWithValue }: { rejectWithValue: RejectWithValue }) => {
     try {
       const response = await axiosInstance.get<ResponseWithPagination>(
         `/gallery/pagination?page=${query.page}&limit=${query.limit}`
@@ -94,9 +98,9 @@ export const fetchImagesWithPagination = createAsyncThunk(
   }
 );
 
-export const removeImage = createAsyncThunk(
+export const removeImage = createAsyncThunk<string, string, { rejectValue: string }>(
   'gallery/removeImage',
-  async (id: string, { rejectWithValue }) => {
+  async (id: string, { rejectWithValue }: { rejectWithValue: RejectWithValue }) => {
     try {
       await axiosInstance.delete(`/gallery/${id}`);
       return id; // Return the deleted ID for state updates
@@ -108,15 +112,29 @@ export const removeImage = createAsyncThunk(
   }
 );
 
-// Helper function to extract base64 data from a data URL
-const extractBase64Data = (dataUrl: string): string => {
-  // Handle data URL format: data:image/png;base64,iVBORw0KGgo...
-  const parts = dataUrl.split(',');
-  if (parts.length !== 2 || !parts[0].includes('base64')) {
-    throw new Error('Invalid data URL format');
+// Helper function to ensure base64 data is in the correct format for the backend
+// Backend expects: data:[content-type];base64,[base64-data]
+const extractBase64Data = (data: string): string => {
+  // If it's already a properly formatted data URL, return it as is
+  if (data.startsWith('data:') && data.includes(';base64,')) {
+    const parts = data.split(',');
+    if (parts.length !== 2) {
+      throw new Error('Invalid data URL format: missing comma separator');
+    }
+    if (!parts[0].includes('base64')) {
+      throw new Error('Invalid data URL format: not base64 encoded');
+    }
+    return data; // Return the full data URL
   }
-  // Return just the base64-encoded part
-  return parts[1];
+  
+  // If it's raw base64 data, convert it to a proper data URL
+  const base64Regex = /^[A-Za-z0-9+/=]+$/;
+  if (!base64Regex.test(data)) {
+    console.warn('Warning: Input might not be valid base64');
+  }
+  
+  // Convert to proper data URL format with image/jpeg as default content type
+  return `data:image/jpeg;base64,${data}`;
 };
 
 // Helper function to convert file to base64 data URL
@@ -124,14 +142,24 @@ const fileToBase64 = (file: File): Promise<string> => {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.readAsDataURL(file);
-    reader.onload = () => resolve(reader.result as string);
-    reader.onerror = (error) => reject(error);
+    reader.onload = () => {
+      const result = reader.result;
+      if (typeof result === 'string') {
+        resolve(result);
+      } else {
+        reject(new Error('FileReader did not return a string'));
+      }
+    };
+    reader.onerror = error => {
+      console.error('Error reading file:', error);
+      reject(error);
+    };
   });
 };
 
-export const addNewImage = createAsyncThunk(
+export const addNewImage = createAsyncThunk<Image, NewsFormInput, { rejectValue: string }>(
   'gallery/addNewImage',
-  async (values: NewsFormInput, { rejectWithValue }) => {
+  async (values: NewsFormInput, { rejectWithValue }: { rejectWithValue: RejectWithValue }) => {
     try {
       if (
         !values.image ||
@@ -171,22 +199,22 @@ const gallerySlice = createSlice({
   name: 'gallery',
   initialState,
   reducers: {},
-  extraReducers: (builder) => {
+  extraReducers: (builder: ActionReducerMapBuilder<ImageState>) => {
     builder
       .addCase(fetchImages.pending, (state) => {
         state.loading = true;
         state.error = null;
       })
-      .addCase(fetchImages.fulfilled, (state, action) => {
-        state.images = action.payload as Image[];
+      .addCase(fetchImages.fulfilled, (state, action: PayloadAction<Image[]>) => {
+        state.images = action.payload;
         state.loading = false;
       })
       .addCase(fetchImagesWithPagination.pending, (state) => {
         state.loading = true;
         state.error = null;
       })
-      .addCase(fetchImagesWithPagination.fulfilled, (state, action) => {
-        state.paginatedData = action.payload as ResponseWithPagination;
+      .addCase(fetchImagesWithPagination.fulfilled, (state, action: PayloadAction<ResponseWithPagination>) => {
+        state.paginatedData = action.payload;
         state.loading = false;
       })
       .addCase(fetchImageById.pending, (state) => {
@@ -194,34 +222,39 @@ const gallerySlice = createSlice({
         state.error = null;
         state.images = [];
       })
-      .addCase(fetchImageById.fulfilled, (state, action) => {
-        state.images.push(action.payload as Image);
+      .addCase(fetchImageById.fulfilled, (state, action: PayloadAction<Image>) => {
+        state.images = [action.payload];
         state.loading = false;
+      })
+      .addCase(fetchImageById.rejected, (state, action: PayloadAction<string | undefined>) => {
+        state.loading = false;
+        state.error = action.payload || 'Failed to fetch image';
       })
       .addCase(removeImage.fulfilled, (state, action) => {
         state.images = state.images.filter(
-          (item) => item.ID !== (action.meta.arg as string)
+          (item) => item.ID !== action.meta.arg
         );
       })
       .addCase(addNewImage.pending, (state) => {
         state.loading = true;
         state.error = null;
       })
-      .addCase(addNewImage.fulfilled, (state, action) => {
-        if (action.payload) {
-          state.images.push(action.payload as Image);
-        }
+      .addCase(addNewImage.fulfilled, (state, action: PayloadAction<Image>) => {
+        state.images.unshift(action.payload);
         state.loading = false;
       })
-      .addMatcher(isError, (state, action: PayloadAction<string>) => {
-        state.error = action.payload;
+      .addCase(addNewImage.rejected, (state, action: PayloadAction<string | undefined>) => {
         state.loading = false;
-      });
+        state.error = action.payload || 'Failed to add new image';
+      })
+      .addMatcher(
+        (action: AnyAction) => action.type.endsWith('rejected'),
+        (state, action: PayloadAction<string | undefined>) => {
+          state.error = action.payload || 'An error occurred';
+          state.loading = false;
+        }
+      );
   }
 });
 
 export default gallerySlice.reducer;
-
-function isError(action: AnyAction) {
-  return action.type.endsWith('rejected');
-}

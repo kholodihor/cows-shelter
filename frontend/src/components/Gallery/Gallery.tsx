@@ -127,8 +127,8 @@ const Gallery = () => {
     );
   }
 
-  // Split images into chunks for the slider
-  const imageChunks = chunkArray(images, Math.ceil(images.length / 4));
+  // Split images into chunks for the slider based on itemsPerPage
+  const imageChunks = chunkArray(images, itemsPerPage);
 
   return (
     <section id="gallery" ref={ref} className="relative">

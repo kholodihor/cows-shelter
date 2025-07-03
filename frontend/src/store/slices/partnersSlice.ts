@@ -1,9 +1,10 @@
 import { PartnersFormInput } from '@/types';
-import {
+import { 
   AnyAction,
   createAsyncThunk,
   createSlice,
-  PayloadAction
+  PayloadAction,
+  ActionReducerMapBuilder
 } from '@reduxjs/toolkit';
 import axiosInstance from '@/utils/axios';
 import { transformMinioUrlsInData } from '@/utils/minioUrlHelper';
@@ -20,12 +21,15 @@ type ResponseWithPagination = {
   totalLength: number;
 };
 
-type PartnersState = {
+export interface PartnersState {
   partners: Partner[];
+  paginatedData: ResponseWithPagination;
   loading: boolean;
   error: string | null;
-  paginatedData: ResponseWithPagination;
-};
+}
+
+// Helper type for error handling in async thunks
+type RejectWithValue = (value: string) => any;
 
 const initialState: PartnersState = {
   partners: [],
@@ -37,9 +41,9 @@ const initialState: PartnersState = {
   }
 };
 
-export const fetchPartners = createAsyncThunk(
+export const fetchPartners = createAsyncThunk<Partner[], void, { rejectValue: string }>(
   'partners/fetchPartners',
-  async (_, { rejectWithValue }) => {
+  async (_, { rejectWithValue }: { rejectWithValue: RejectWithValue }) => {
     try {
       const response = await axiosInstance.get<Partner[]>('/partners');
       let data = response.data;
@@ -54,9 +58,9 @@ export const fetchPartners = createAsyncThunk(
   }
 );
 
-export const fetchPartnersWithPagination = createAsyncThunk(
+export const fetchPartnersWithPagination = createAsyncThunk<ResponseWithPagination, { page: number; limit: number }, { rejectValue: string }>(
   'partners/fetchPartnersWithPagination',
-  async (query: { page: number; limit: number }, { rejectWithValue }) => {
+  async (query: { page: number; limit: number }, { rejectWithValue }: { rejectWithValue: RejectWithValue }) => {
     try {
       const response = await axiosInstance.get<ResponseWithPagination>(
         `/partners/pagination?page=${query.page}&limit=${query.limit}`
@@ -75,9 +79,9 @@ export const fetchPartnersWithPagination = createAsyncThunk(
   }
 );
 
-export const removePartner = createAsyncThunk(
+export const removePartner = createAsyncThunk<string, string, { rejectValue: string }>(
   'partners/removePartner',
-  async (id: string, { rejectWithValue }) => {
+  async (id: string, { rejectWithValue }: { rejectWithValue: RejectWithValue }) => {
     try {
       await axiosInstance.delete(`/partners/${id}`);
       return id; // Return the deleted ID for state updates
@@ -89,15 +93,29 @@ export const removePartner = createAsyncThunk(
   }
 );
 
-// Helper function to extract base64 data from a data URL
-const extractBase64Data = (dataUrl: string): string => {
-  // Handle data URL format: data:image/png;base64,iVBORw0KGgo...
-  const parts = dataUrl.split(',');
-  if (parts.length !== 2 || !parts[0].includes('base64')) {
-    throw new Error('Invalid data URL format');
+// Helper function to ensure base64 data is in the correct format for the backend
+// Backend expects: data:[content-type];base64,[base64-data]
+const extractBase64Data = (data: string): string => {
+  // If it's already a properly formatted data URL, return it as is
+  if (data.startsWith('data:') && data.includes(';base64,')) {
+    const parts = data.split(',');
+    if (parts.length !== 2) {
+      throw new Error('Invalid data URL format: missing comma separator');
+    }
+    if (!parts[0].includes('base64')) {
+      throw new Error('Invalid data URL format: not base64 encoded');
+    }
+    return data; // Return the full data URL
   }
-  // Return just the base64-encoded part
-  return parts[1];
+  
+  // If it's raw base64 data, convert it to a proper data URL
+  const base64Regex = /^[A-Za-z0-9+/=]+$/;
+  if (!base64Regex.test(data)) {
+    console.warn('Warning: Input might not be valid base64');
+  }
+  
+  // Convert to proper data URL format with image/jpeg as default content type
+  return `data:image/jpeg;base64,${data}`;
 };
 
 // Helper function to convert file to base64 data URL
@@ -105,14 +123,24 @@ const fileToBase64 = (file: File): Promise<string> => {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.readAsDataURL(file);
-    reader.onload = () => resolve(reader.result as string);
-    reader.onerror = (error) => reject(error);
+    reader.onload = () => {
+      const result = reader.result;
+      if (typeof result === 'string') {
+        resolve(result);
+      } else {
+        reject(new Error('FileReader did not return a string'));
+      }
+    };
+    reader.onerror = error => {
+      console.error('Error reading file:', error);
+      reject(error);
+    };
   });
 };
 
-export const addNewPartner = createAsyncThunk(
+export const addNewPartner = createAsyncThunk<Partner, PartnersFormInput, { rejectValue: string }>(
   'partners/addNewPartner',
-  async (values: PartnersFormInput, { rejectWithValue }) => {
+  async (values: PartnersFormInput, { rejectWithValue }: { rejectWithValue: RejectWithValue }) => {
     try {
       const file = values.logo[0];
       const dataUrl = await fileToBase64(file);
@@ -139,12 +167,9 @@ export const addNewPartner = createAsyncThunk(
 );
 
 // Alias updatePartner as editPartner for backward compatibility
-export const editPartner = createAsyncThunk(
+export const editPartner = createAsyncThunk<Partner, { id: string; values: PartnersFormInput }, { rejectValue: string }>(
   'partners/updatePartner',
-  async (
-    { id, values }: { id: string; values: PartnersFormInput },
-    { rejectWithValue }
-  ) => {
+  async ({ id, values }: { id: string; values: PartnersFormInput }, { rejectWithValue }: { rejectWithValue: RejectWithValue }) => {
     try {
       // Convert logo to base64 if a new logo is provided
       let logoData = '';
@@ -213,66 +238,62 @@ const partnersSlice = createSlice({
   name: 'partners',
   initialState,
   reducers: {},
-  extraReducers: (builder) => {
+  extraReducers: (builder: ActionReducerMapBuilder<PartnersState>) => {
     builder
-      .addCase(fetchPartners.pending, (state) => {
+      .addCase(fetchPartners.pending, (state: PartnersState) => {
         state.loading = true;
         state.error = null;
       })
-      .addCase(fetchPartners.fulfilled, (state, action) => {
-        state.partners = action.payload as Partner[];
+      .addCase(fetchPartners.fulfilled, (state: PartnersState, action: PayloadAction<Partner[]>) => {
+        state.partners = action.payload;
         state.loading = false;
       })
-      .addCase(fetchPartnersWithPagination.pending, (state) => {
+      .addCase(fetchPartnersWithPagination.pending, (state: PartnersState) => {
         state.loading = true;
         state.error = null;
       })
-      .addCase(fetchPartnersWithPagination.fulfilled, (state, action) => {
-        state.paginatedData = action.payload as ResponseWithPagination;
+      .addCase(fetchPartnersWithPagination.fulfilled, (state: PartnersState, action: PayloadAction<ResponseWithPagination>) => {
+        state.paginatedData = action.payload;
         state.loading = false;
       })
-      .addCase(removePartner.fulfilled, (state, action) => {
+      .addCase(removePartner.fulfilled, (state: PartnersState, action: PayloadAction<string, string, { arg: string }>) => {
         state.partners = state.partners.filter(
-          (item) => item.ID !== (action.meta.arg as string)
+          (item: Partner) => item.ID !== action.meta.arg
         );
       })
-      .addCase(editPartner.pending, (state) => {
+      .addCase(editPartner.pending, (state: PartnersState) => {
         state.loading = true;
         state.error = null;
       })
-      .addCase(
-        editPartner.fulfilled,
-        (state, action: PayloadAction<Partner>) => {
-          state.loading = false;
-          const index = state.partners.findIndex(
-            (partner) => partner.ID === action.payload.ID
-          );
-          if (index !== -1) {
-            state.partners[index] = action.payload;
-          }
-          // Also update in paginated data if it exists
-          const paginatedIndex = state.paginatedData.partners.findIndex(
-            (partner) => partner.ID === action.payload.ID
-          );
-          if (paginatedIndex !== -1) {
-            state.paginatedData.partners[paginatedIndex] = action.payload;
-          }
-        }
-      )
-      .addCase(editPartner.rejected, (state, action) => {
+      .addCase(editPartner.fulfilled, (state: PartnersState, action: PayloadAction<Partner>) => {
         state.loading = false;
-        state.error = (action.payload as string) || 'Failed to update partner';
+        const index = state.partners.findIndex(
+          (partner: Partner) => partner.ID === action.payload.ID
+        );
+        if (index !== -1) {
+          state.partners[index] = action.payload;
+        }
+        // Also update in paginated data if it exists
+        const paginatedIndex = state.paginatedData.partners.findIndex(
+          (partner: Partner) => partner.ID === action.payload.ID
+        );
+        if (paginatedIndex !== -1) {
+          state.paginatedData.partners[paginatedIndex] = action.payload;
+        }
+      })
+      .addCase(editPartner.rejected, (state: PartnersState, action: PayloadAction<string | undefined>) => {
+        state.loading = false;
+        state.error = action.payload || 'Failed to update partner';
         // Don't modify the partners array on error, just update the loading and error states
       })
-      .addMatcher(isError, (state, action: PayloadAction<string>) => {
-        state.error = action.payload;
-        state.loading = false;
-      });
+      .addMatcher(
+        (action: AnyAction) => action.type.endsWith('rejected'),
+        (state: PartnersState, action: PayloadAction<string | undefined>) => {
+          state.error = action.payload || 'An error occurred';
+          state.loading = false;
+        }
+      );
   }
 });
 
 export default partnersSlice.reducer;
-
-function isError(action: AnyAction) {
-  return action.type.endsWith('rejected');
-}

@@ -43,15 +43,29 @@ const initialState: ExcursionsState = {
   }
 };
 
-// Helper function to extract base64 data from a data URL
-const extractBase64Data = (dataUrl: string): string => {
-  // Handle data URL format: data:image/png;base64,iVBORw0KGgo...
-  const parts = dataUrl.split(',');
-  if (parts.length !== 2 || !parts[0].includes('base64')) {
-    throw new Error('Invalid data URL format');
+// Helper function to ensure base64 data is in the correct format for the backend
+// Backend expects: data:[content-type];base64,[base64-data]
+const extractBase64Data = (data: string): string => {
+  // If it's already a properly formatted data URL, return it as is
+  if (data.startsWith('data:') && data.includes(';base64,')) {
+    const parts = data.split(',');
+    if (parts.length !== 2) {
+      throw new Error('Invalid data URL format: missing comma separator');
+    }
+    if (!parts[0].includes('base64')) {
+      throw new Error('Invalid data URL format: not base64 encoded');
+    }
+    return data; // Return the full data URL
   }
-  // Return just the base64-encoded part
-  return parts[1];
+  
+  // If it's raw base64 data, convert it to a proper data URL
+  const base64Regex = /^[A-Za-z0-9+/=]+$/;
+  if (!base64Regex.test(data)) {
+    console.warn('Warning: Input might not be valid base64');
+  }
+  
+  // Convert to proper data URL format with image/jpeg as default content type
+  return `data:image/jpeg;base64,${data}`;
 };
 
 // Helper function to convert file to base64 data URL
@@ -59,8 +73,18 @@ const fileToBase64 = (file: File): Promise<string> => {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.readAsDataURL(file);
-    reader.onload = () => resolve(reader.result as string);
-    reader.onerror = (error) => reject(error);
+    reader.onload = () => {
+      const result = reader.result;
+      if (typeof result === 'string') {
+        resolve(result);
+      } else {
+        reject(new Error('FileReader did not return a string'));
+      }
+    };
+    reader.onerror = error => {
+      console.error('Error reading file:', error);
+      reject(error);
+    };
   });
 };
 
@@ -128,7 +152,7 @@ export const removeExcursion = createAsyncThunk(
 
 export const addNewExcursion = createAsyncThunk(
   'excursions/addNewExcursion',
-  async (values: ExcursionsFormInput, { rejectWithValue }) => {
+  async (values: ExcursionsFormInput, { rejectWithValue }: { rejectWithValue: (value: string) => any }) => {
     try {
       // Convert image to base64 if it exists
       let imageData = '';
@@ -182,12 +206,10 @@ export const addNewExcursion = createAsyncThunk(
 
       return response.data;
     } catch (error) {
-      const err = error as AxiosError;
-      console.error(
-        'Error adding excursion:',
-        err.response?.data || err.message
-      );
-      return rejectWithValue(err.response?.data || 'Failed to add excursion');
+      const err = error as AxiosError<{ message?: string }>;
+      const errorMessage = err.response?.data?.message || err.message || 'Failed to add excursion';
+      console.error('Error adding excursion:', errorMessage);
+      return rejectWithValue(errorMessage);
     }
   }
 );
@@ -196,7 +218,7 @@ export const editExcursion = createAsyncThunk(
   'excursions/editExcursion',
   async (
     excursionsData: { id?: string; values: ExcursionsFormInput },
-    { rejectWithValue }
+    { rejectWithValue }: { rejectWithValue: (value: string) => any }
   ) => {
     try {
       if (!excursionsData.id) {
@@ -276,9 +298,8 @@ export const editExcursion = createAsyncThunk(
         'Error updating excursion:',
         err.response?.data || err.message
       );
-      return rejectWithValue(
-        err.response?.data || 'Failed to update excursion'
-      );
+      const errorMessage = (err as AxiosError<{ message?: string }>).response?.data?.message || err.message || 'Failed to update excursion';
+      return rejectWithValue(errorMessage);
     }
   }
 );
