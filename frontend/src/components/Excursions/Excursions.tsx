@@ -161,7 +161,7 @@ const Excursions = () => {
             <ul className="mb-5 flex flex-col items-center gap-4">
               {excursions && Array.isArray(excursions) ? (
                 excursions.map((excursion: (typeof excursions)[0]) => (
-                  <li key={excursion.id} className="drop-shadow">
+                  <li key={excursion.ID} className="drop-shadow">
                     <div className="relative">
                       <img
                         src={
@@ -217,7 +217,7 @@ const Excursions = () => {
             <ul className="mb-0 flex justify-center gap-6 lg:mb-[8.75rem]">
               {excursions && Array.isArray(excursions) ? (
                 excursions.map((excursion: (typeof excursions)[0]) => (
-                  <li key={excursion.id} className="drop-shadow">
+                  <li key={excursion.ID} className="drop-shadow">
                     <div className="group relative">
                       <img
                         className="h-[235px] w-[324px] object-cover lg:h-[384px] lg:w-[384px]"

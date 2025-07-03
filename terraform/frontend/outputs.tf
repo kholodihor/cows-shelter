@@ -22,3 +22,8 @@ output "frontend_url" {
   description = "URL to access the frontend application"
   value       = var.domain_name != "" ? "https://${var.domain_name}" : "https://${aws_cloudfront_distribution.frontend.domain_name}"
 }
+
+output "cloudfront_oai_id" {
+  description = "ID of the CloudFront Origin Access Identity"
+  value       = aws_cloudfront_origin_access_identity.uploads.id
+}

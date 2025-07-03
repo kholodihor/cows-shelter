@@ -6,8 +6,8 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/kholodihor/cows-shelter-backend/config"
+	"github.com/kholodihor/cows-shelter-backend/middleware"
 	"github.com/kholodihor/cows-shelter-backend/models"
-	"github.com/kholodihor/cows-shelter-backend/services"
 )
 
 func GetAllNews(c *gin.Context) {
@@ -105,15 +105,15 @@ func CreateNews(c *gin.Context) {
 
 	// Handle image upload if present
 	if req.ImageData != "" {
-		// Initialize MinIO service
-		minioService, err := services.NewMinioService()
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to initialize MinIO service"})
+		// Get storage service from context
+		store := middleware.GetStorage(c.Request.Context())
+		if store == nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Storage service not available"})
 			return
 		}
 
-		// Upload the base64 image to MinIO
-		imageURL, err := minioService.UploadBase64(c.Request.Context(), req.ImageData, "news")
+		// Upload the base64 image using the storage service
+		imageURL, err := store.UploadBase64(c.Request.Context(), req.ImageData, "news")
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to upload image: " + err.Error()})
 			return
@@ -191,25 +191,25 @@ func UpdateNews(c *gin.Context) {
 
 	// Handle image upload if new image data is provided
 	if req.ImageData != "" {
-		// Initialize MinIO service
-		minioService, err := services.NewMinioService()
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to initialize MinIO service"})
+		// Get storage service from context
+		store := middleware.GetStorage(c.Request.Context())
+		if store == nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Storage service not available"})
 			return
 		}
 
-		// Upload the new base64 image to MinIO
-		newImageURL, err := minioService.UploadBase64(c.Request.Context(), req.ImageData, "news")
+		// Upload the new base64 image using the storage service
+		newImageURL, err := store.UploadBase64(c.Request.Context(), req.ImageData, "news")
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to upload new image: " + err.Error()})
 			return
 		}
 
-		// Delete the old image from MinIO if it exists
+		// Delete the old image if it exists
 		if news.ImageUrl != "" {
-			oldObjectName := minioService.ExtractObjectName(news.ImageUrl)
+			oldObjectName := store.ExtractObjectName(news.ImageUrl)
 			if oldObjectName != "" {
-				_ = minioService.DeleteFile(c.Request.Context(), oldObjectName)
+				_ = store.DeleteFile(c.Request.Context(), oldObjectName)
 			}
 		}
 
@@ -244,19 +244,19 @@ func DeleteNews(c *gin.Context) {
 		return
 	}
 
-	// Initialize MinIO service
-	minioService, err := services.NewMinioService()
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to initialize MinIO service"})
+	// Get storage service from context
+	store := middleware.GetStorage(c.Request.Context())
+	if store == nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Storage service not available"})
 		return
 	}
 
-	// Delete the image from MinIO if it exists
+	// Delete the image if it exists
 	if news.ImageUrl != "" {
 		// Extract the object name from the URL
-		objectName := minioService.ExtractObjectName(news.ImageUrl)
+		objectName := store.ExtractObjectName(news.ImageUrl)
 		if objectName != "" {
-			_ = minioService.DeleteFile(c.Request.Context(), objectName)
+			_ = store.DeleteFile(c.Request.Context(), objectName)
 		}
 	}
 

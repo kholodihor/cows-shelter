@@ -1,13 +1,22 @@
 package controllers
 
 import (
+	"context"
 	"net/http"
-	"os"
-	"path/filepath"
-	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/kholodihor/cows-shelter-backend/services"
 )
+
+var s3Service *services.S3Service
+
+func init() {
+	var err error
+	s3Service, err = services.NewS3Service()
+	if err != nil {
+		panic("Failed to initialize S3 service: " + err.Error())
+	}
+}
 
 func UploadImage(c *gin.Context) {
 	// Parse the file from the request
@@ -17,27 +26,13 @@ func UploadImage(c *gin.Context) {
 		return
 	}
 
-	// Create an upload directory if it doesn't exist
-	uploadDir := "./uploads"
-	if _, err := os.Stat(uploadDir); os.IsNotExist(err) {
-		err = os.MkdirAll(uploadDir, os.ModePerm)
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Could not create upload directory"})
-			return
-		}
-	}
-
-	// Save the file with a timestamp to avoid name conflicts
-	filename := time.Now().Format("20060102150405") + "_" + filepath.Base(file.Filename)
-	filepath := filepath.Join(uploadDir, filename)
-	if err := c.SaveUploadedFile(file, filepath); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Could not save file"})
+	// Upload the file to S3
+	imageURL, err := s3Service.UploadFile(context.Background(), file, "uploads")
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to upload file to S3: " + err.Error()})
 		return
 	}
 
-	// Construct the image URL
-	imageUrl := "/uploads/" + filename
-
-	// Return the image URL in the response
-	c.JSON(http.StatusCreated, gin.H{"image_url": imageUrl})
+	// Return the S3 URL in the response
+	c.JSON(http.StatusCreated, gin.H{"image_url": imageURL})
 }

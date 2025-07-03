@@ -27,7 +27,7 @@ const NewsBlock = ({ posts, onItemClick }: NewsBlockProps) => {
       <ul className="grid h-[210px] pt-[3rem] md:h-[586px] md:grid-cols-2 md:gap-4 lg:grid-cols-3">
         {posts.map((post, index) => (
           <li
-            key={post.id || index}
+            key={post.ID || index}
             className={`group relative cursor-pointer ${
               index === 0
                 ? 'row-span-2 max-h-[201px] min-w-[302px] max-w-[384px] md:max-h-[531px]'

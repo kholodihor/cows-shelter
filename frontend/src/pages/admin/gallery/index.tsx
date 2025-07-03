@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react';
 import Confirm from '@/components/admin/Confirm';
 import Bucket from '@/components/icons/Bucket';
 import AddIcon from '@/components/icons/AddIcon';
-import { createImgUrl } from '@/utils/createFileUrl';
 import { useAppDispatch, useAppSelector } from '@/store/hook';
 import { fetchImages, removeImage } from '@/store/slices/gallerySlice';
 import Loader from '@/components/admin/Loader';
@@ -27,12 +26,16 @@ const Gallery = () => {
     dispatch(fetchImages());
   }, [dispatch, showModal]);
 
-  const deleteImage = () => {
+  const deleteImage = async () => {
     try {
-      dispatch(removeImage(currentId));
+      const resultAction = await dispatch(removeImage(currentId));
+      if (removeImage.rejected.match(resultAction)) {
+        throw new Error(resultAction.error.message || 'Failed to delete image');
+      }
       dispatch(openAlert(deleteSuccessResponseMessage('світлину')));
       setShowConfirm(false);
-    } catch (error: any) {
+    } catch (error) {
+      console.error('Error deleting image:', error);
       dispatch(openAlert(deleteErrorResponseMessage('світлину')));
     }
   };
@@ -53,7 +56,7 @@ const Gallery = () => {
         </div>
         {images.map((image) => (
           <div
-            key={image.id}
+            key={image.ID}
             className="relative h-[180px] w-[288px] text-left"
           >
             <img
@@ -65,7 +68,7 @@ const Gallery = () => {
               <button
                 className="rounded-full p-[8px] text-xl text-white transition-all hover:text-error"
                 onClick={() => {
-                  setShowConfirm(true), setCurrentId(image.id);
+                  setShowConfirm(true), setCurrentId(image.ID);
                 }}
               >
                 <Bucket />

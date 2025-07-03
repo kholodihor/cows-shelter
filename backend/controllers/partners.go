@@ -6,8 +6,8 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/kholodihor/cows-shelter-backend/config"
+	"github.com/kholodihor/cows-shelter-backend/middleware"
 	"github.com/kholodihor/cows-shelter-backend/models"
-	"github.com/kholodihor/cows-shelter-backend/services"
 )
 
 // CreatePartnerRequest represents the JSON request body for creating a partner
@@ -96,15 +96,15 @@ func CreatePartner(c *gin.Context) {
 		return
 	}
 
-	// Initialize MinIO service
-	minioService, err := services.NewMinioService()
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to initialize MinIO service"})
+	// Get storage service from context
+	store := middleware.GetStorage(c.Request.Context())
+	if store == nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Storage service not available"})
 		return
 	}
 
-	// Upload the logo to MinIO using base64 data
-	imageURL, err := minioService.UploadBase64(c.Request.Context(), req.LogoData, "partners")
+	// Upload the logo using the storage service
+	imageURL, err := store.UploadBase64(c.Request.Context(), req.LogoData, "partners")
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to upload logo: " + err.Error()})
 		return
@@ -120,7 +120,7 @@ func CreatePartner(c *gin.Context) {
 	// Save the partner to the database
 	if err := config.DB.Create(&partner).Error; err != nil {
 		// Attempt to delete the uploaded image if database operation fails
-		_ = minioService.DeleteFile(c.Request.Context(), minioService.ExtractObjectName(imageURL))
+		_ = store.DeleteFile(c.Request.Context(), store.ExtractObjectName(imageURL))
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create partner"})
 		return
 	}
@@ -167,23 +167,23 @@ func UpdatePartner(c *gin.Context) {
 
 	// Handle logo update if new image data is provided
 	if req.LogoData != "" {
-		// Initialize MinIO service
-		minioService, err := services.NewMinioService()
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to initialize MinIO service"})
+		// Get storage service from context
+		store := middleware.GetStorage(c.Request.Context())
+		if store == nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Storage service not available"})
 			return
 		}
 
-		// Delete the old logo from MinIO if it exists
+		// Delete the old logo if it exists
 		if partner.Logo != "" {
-			oldObjectName := minioService.ExtractObjectName(partner.Logo)
+			oldObjectName := store.ExtractObjectName(partner.Logo)
 			if oldObjectName != "" {
-				_ = minioService.DeleteFile(c.Request.Context(), oldObjectName)
+				_ = store.DeleteFile(c.Request.Context(), oldObjectName)
 			}
 		}
 
-		// Upload the new logo to MinIO using base64 data
-		imageURL, err := minioService.UploadBase64(c.Request.Context(), req.LogoData, "partners")
+		// Upload the new logo using the storage service
+		imageURL, err := store.UploadBase64(c.Request.Context(), req.LogoData, "partners")
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to upload new logo: " + err.Error()})
 			return
@@ -203,24 +203,26 @@ func UpdatePartner(c *gin.Context) {
 }
 
 func DeletePartner(c *gin.Context) {
+	// Get the partner ID from the URL
+	id := c.Param("id")
 	var partner models.Partner
-	if err := config.DB.Where("id = ?", c.Param("id")).First(&partner).Error; err != nil {
+	if err := config.DB.Where("id = ?", id).First(&partner).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Partner not found"})
 		return
 	}
 
-	// Initialize MinIO service
-	minioService, err := services.NewMinioService()
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to initialize MinIO service"})
+	// Get storage service from context
+	store := middleware.GetStorage(c.Request.Context())
+	if store == nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Storage service not available"})
 		return
 	}
 
-	// Delete the logo from MinIO if it exists
+	// Delete the logo if it exists
 	if partner.Logo != "" {
-		objectName := minioService.ExtractObjectName(partner.Logo)
+		objectName := store.ExtractObjectName(partner.Logo)
 		if objectName != "" {
-			_ = minioService.DeleteFile(c.Request.Context(), objectName)
+			_ = store.DeleteFile(c.Request.Context(), objectName)
 		}
 	}
 
@@ -230,5 +232,5 @@ func DeletePartner(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "Partner deleted"})
+	c.JSON(http.StatusOK, gin.H{"message": "Partner deleted successfully"})
 }

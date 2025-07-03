@@ -39,8 +39,6 @@ type Service interface {
 type Type string
 
 const (
-	// TypeMinio represents MinIO storage
-	TypeMinio Type = "minio"
 	// TypeS3 represents AWS S3 storage
 	TypeS3 Type = "s3"
 )

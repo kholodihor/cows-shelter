@@ -1,6 +1,7 @@
 package services
 
 import (
+	"bytes"
 	"context"
 	"encoding/base64"
 	"fmt"
@@ -11,12 +12,11 @@ import (
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
-	"github.com/aws/aws-sdk-go-v2/credentials"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/google/uuid"
 )
 
-// S3Service handles file operations with AWS S3 or S3-compatible storage like MinIO
+// S3Service handles file operations with AWS S3
 type S3Service struct {
 	client       *s3.Client
 	bucketName   string
@@ -30,10 +30,7 @@ func NewS3Service() (*S3Service, error) {
 	// Get configuration from environment variables
 	bucketName := os.Getenv("S3_BUCKET")
 	if bucketName == "" {
-		bucketName = os.Getenv("MINIO_BUCKET")
-		if bucketName == "" {
-			bucketName = "cows-shelter"
-		}
+		bucketName = "cows-shelter-uploads"
 	}
 
 	region := os.Getenv("AWS_REGION")
@@ -42,9 +39,6 @@ func NewS3Service() (*S3Service, error) {
 	}
 
 	endpoint := os.Getenv("S3_ENDPOINT")
-	if endpoint == "" {
-		endpoint = os.Getenv("MINIO_ENDPOINT")
-	}
 
 	useSSL := os.Getenv("S3_USE_SSL") != "false"
 	if useSSL {
@@ -55,24 +49,26 @@ func NewS3Service() (*S3Service, error) {
 		endpoint = "http://" + endpoint
 	}
 
-	// Configure AWS SDK
+	// Configure AWS SDK with default credentials chain (will use ECS task role when running in ECS)
 	cfg, err := config.LoadDefaultConfig(context.TODO(),
 		config.WithRegion(region),
-		config.WithCredentialsProvider(credentials.NewStaticCredentialsProvider(
-			os.Getenv("AWS_ACCESS_KEY_ID"),
-			os.Getenv("AWS_SECRET_ACCESS_KEY"),
-			"",
-		)),
 	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load AWS config: %v", err)
 	}
 
+	// Log the credentials source for debugging
+	creds, err := cfg.Credentials.Retrieve(context.TODO())
+	if err != nil {
+		return nil, fmt.Errorf("failed to retrieve AWS credentials: %v", err)
+	}
+	fmt.Printf("Using AWS credentials from: %s\n", creds.Source)
+
 	// Create S3 client
 	client := s3.NewFromConfig(cfg, func(o *s3.Options) {
 		if endpoint != "" {
 			o.BaseEndpoint = aws.String(endpoint)
-			o.UsePathStyle = true // Required for MinIO
+			o.UsePathStyle = true // Use path style for custom endpoints
 		}
 	})
 
@@ -146,7 +142,7 @@ func (s *S3Service) UploadBase64(ctx context.Context, base64Data, folder string)
 	_, err = s.client.PutObject(ctx, &s3.PutObjectInput{
 		Bucket:        aws.String(s.bucketName),
 		Key:           aws.String(objectKey),
-		Body:          strings.NewReader(string(imageData)),
+		Body:          bytes.NewReader(imageData),
 		ContentType:   aws.String(contentType),
 		ContentLength: &contentLength,
 	})
@@ -181,12 +177,28 @@ func (s *S3Service) DeleteFile(ctx context.Context, objectKey string) error {
 
 // GetObjectURL returns the public URL for an object
 func (s *S3Service) GetObjectURL(objectKey string) string {
-	if s.endpoint != "" {
-		// For S3-compatible storage with custom endpoint
-		return fmt.Sprintf("%s/%s/%s", strings.TrimSuffix(s.endpoint, "/"), s.bucketName, objectKey)
+	// Handle cases where objectKey might be a full URL
+	if strings.HasPrefix(objectKey, "http") {
+		return objectKey
 	}
-	// For AWS S3
-	return fmt.Sprintf("https://%s.s3.%s.amazonaws.com/%s", s.bucketName, s.region, objectKey)
+
+	// Check if PUBLIC_STORAGE_URL environment variable is set (for CloudFront)
+	publicStorageURL := os.Getenv("PUBLIC_STORAGE_URL")
+	if publicStorageURL != "" {
+		// Use CloudFront URL for public access
+		return fmt.Sprintf("%s/%s", strings.TrimSuffix(publicStorageURL, "/"), strings.TrimPrefix(objectKey, "/"))
+	}
+
+	// For S3-compatible storage with custom endpoint
+	if s.endpoint != "" {
+		// Remove any protocol prefix if present
+		endpoint := strings.TrimPrefix(s.endpoint, "http://")
+		endpoint = strings.TrimPrefix(endpoint, "https://")
+		return fmt.Sprintf("https://%s/%s/%s", strings.TrimSuffix(endpoint, "/"), s.bucketName, strings.TrimPrefix(objectKey, "/"))
+	}
+
+	// For AWS S3 with proper URL formatting
+	return fmt.Sprintf("https://%s.s3.%s.amazonaws.com/%s", s.bucketName, s.region, strings.TrimPrefix(objectKey, "/"))
 }
 
 // ExtractObjectName extracts the object key from an S3 URL

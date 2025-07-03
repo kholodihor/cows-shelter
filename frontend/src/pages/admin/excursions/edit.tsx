@@ -18,7 +18,6 @@ import {
   editSuccessResponseMessage
 } from '@/utils/responseMessages';
 import { excursionsValidation } from './excursionsSchema';
-import { createImgUrl } from '@/utils/createFileUrl';
 
 const EditExcursions = () => {
   const { id } = useParams();
@@ -84,8 +83,11 @@ const EditExcursions = () => {
       setIsProcessing(false);
       dispatch(openAlert(editSuccessResponseMessage('екскурсію')));
       navigate(-1);
-    } catch (error: any) {
+    } catch (error: unknown) {
+      console.error('Failed to edit excursion:', error);
       dispatch(openAlert(editErrorResponseMessage('екскурсію')));
+    } finally {
+      setIsProcessing(false);
     }
   };
 

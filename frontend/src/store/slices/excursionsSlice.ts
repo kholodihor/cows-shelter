@@ -10,7 +10,7 @@ import axiosInstance from '@/utils/axios';
 import { transformMinioUrlsInData } from '@/utils/minioUrlHelper';
 
 export type Excursion = {
-  id: string;
+  ID: string; // Note: Uppercase ID to match backend response
   title_ua: string;
   title_en: string;
   description_ua: string;
@@ -43,7 +43,18 @@ const initialState: ExcursionsState = {
   }
 };
 
-// Helper function to convert file to base64
+// Helper function to extract base64 data from a data URL
+const extractBase64Data = (dataUrl: string): string => {
+  // Handle data URL format: data:image/png;base64,iVBORw0KGgo...
+  const parts = dataUrl.split(',');
+  if (parts.length !== 2 || !parts[0].includes('base64')) {
+    throw new Error('Invalid data URL format');
+  }
+  // Return just the base64-encoded part
+  return parts[1];
+};
+
+// Helper function to convert file to base64 data URL
 const fileToBase64 = (file: File): Promise<string> => {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -131,7 +142,9 @@ export const addNewExcursion = createAsyncThunk(
             return rejectWithValue('Image size should be less than 5MB');
           }
 
-          imageData = await fileToBase64(file);
+          const dataUrl = await fileToBase64(file);
+          // Extract just the base64 data part
+          imageData = extractBase64Data(dataUrl);
         } catch (uploadError) {
           console.error('Image processing failed:', uploadError);
           return rejectWithValue('Failed to process image');
@@ -208,7 +221,9 @@ export const editExcursion = createAsyncThunk(
               return rejectWithValue('Image size should be less than 5MB');
             }
 
-            imageData = await fileToBase64(file);
+            const dataUrl = await fileToBase64(file);
+          // Extract just the base64 data part
+          imageData = extractBase64Data(dataUrl);
           } catch (uploadError) {
             console.error('Image processing failed:', uploadError);
             return rejectWithValue('Failed to process image');
@@ -301,7 +316,7 @@ const excursionsSlice = createSlice({
       })
       .addCase(removeExcursion.fulfilled, (state, action) => {
         state.excursions = state.excursions.filter(
-          (item) => item.id !== (action.meta.arg as string)
+          (item) => item.ID !== (action.meta.arg as string)
         );
       })
       .addMatcher(isError, (state, action: PayloadAction<string>) => {

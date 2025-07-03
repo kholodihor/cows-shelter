@@ -13,7 +13,6 @@ import {
   deleteSuccessResponseMessage,
   deleteErrorResponseMessage
 } from '@/utils/responseMessages';
-import { createImgUrl } from '@/utils/createFileUrl';
 
 const Partners = () => {
   const dispatch = useAppDispatch();
@@ -32,7 +31,8 @@ const Partners = () => {
       dispatch(removePartner(currentId));
       setShowConfirm(false);
       dispatch(openAlert(deleteSuccessResponseMessage('партнера')));
-    } catch (error) {
+    } catch (error: unknown) {
+      console.error('Failed to delete partner:', error);
       dispatch(openAlert(deleteErrorResponseMessage('партнера')));
     }
   };
@@ -57,7 +57,7 @@ const Partners = () => {
         <div className="flex flex-wrap gap-5">
           {partners.map((partner) => (
             <div
-              key={partner.id}
+              key={partner.ID}
               className="flex h-[288px] w-[211px] flex-col items-center justify-center border-2 border-gray-300 pt-2"
             >
               <img
@@ -72,14 +72,14 @@ const Partners = () => {
               </h2>
               <div className="buttons mt-auto flex w-full justify-between gap-2 border-t border-t-gray-300 bg-gray-100 px-4">
                 <button className="flex h-10 w-10 items-center justify-center text-xl text-darkgray hover:text-accent">
-                  <Link to={`/admin/partners/edit/${partner.id}`}>
+                  <Link to={`/admin/partners/edit/${partner.ID}`}>
                     <Pen />
                   </Link>
                 </button>
                 <button
                   className="hover:text-red-500 flex h-10 w-10 items-center justify-center text-xl text-darkgray"
                   onClick={() => {
-                    setShowConfirm(true), setCurrentId(partner.id);
+                    setShowConfirm(true), setCurrentId(partner.ID);
                   }}
                 >
                   <Bucket />

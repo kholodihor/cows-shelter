@@ -1,9 +1,12 @@
 package s3
 
 import (
+	"bytes"
 	"context"
+	"encoding/base64"
 	"fmt"
 	"mime/multipart"
+	"os"
 	"path/filepath"
 	"strings"
 
@@ -109,21 +112,27 @@ func (s *Service) UploadFile(ctx context.Context, fileHeader *multipart.FileHead
 
 // UploadBase64 uploads a base64-encoded image
 func (s *Service) UploadBase64(ctx context.Context, base64Data, folder string) (string, error) {
-	// Extract content type and data from base64 string
-	contentType, data, err := parseBase64Data(base64Data)
+	// Extract content type and base64 data from the data URL
+	contentType, base64Image, err := parseBase64Data(base64Data)
 	if err != nil {
 		return "", fmt.Errorf("invalid base64 data: %w", err)
+	}
+
+	// Decode the base64 data to binary
+	imageData, err := base64.StdEncoding.DecodeString(base64Image)
+	if err != nil {
+		return "", fmt.Errorf("failed to decode base64 data: %w", err)
 	}
 
 	// Generate a unique filename
 	ext := "." + strings.Split(contentType, "/")[1] // e.g., "image/png" -> ".png"
 	objectName := generateObjectName(folder, ext)
 
-	// Upload the file
+	// Upload the binary data to S3
 	_, err = s.client.PutObject(ctx, &s3.PutObjectInput{
 		Bucket:      aws.String(s.bucketName),
 		Key:         aws.String(objectName),
-		Body:        strings.NewReader(data),
+		Body:        bytes.NewReader(imageData), // Use the decoded binary data
 		ContentType: aws.String(contentType),
 	})
 	if err != nil {
@@ -156,6 +165,13 @@ func (s *Service) GetObjectURL(objectKey string) string {
 	// Handle cases where objectKey might be a full URL
 	if strings.HasPrefix(objectKey, "http") {
 		return objectKey
+	}
+
+	// Check for public storage URL from environment variable
+	if publicURL := os.Getenv("PUBLIC_STORAGE_URL"); publicURL != "" {
+		// Ensure the public URL ends with a single trailing slash
+		baseURL := strings.TrimSuffix(publicURL, "/")
+		return fmt.Sprintf("%s/%s", baseURL, strings.TrimPrefix(objectKey, "/"))
 	}
 
 	// If using a custom endpoint (e.g., MinIO), construct the URL directly

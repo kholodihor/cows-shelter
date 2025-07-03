@@ -5,8 +5,8 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/kholodihor/cows-shelter-backend/config"
+	"github.com/kholodihor/cows-shelter-backend/middleware"
 	"github.com/kholodihor/cows-shelter-backend/models"
-	"github.com/kholodihor/cows-shelter-backend/services"
 )
 
 // CreatePdfRequest represents the JSON request body for creating a PDF
@@ -53,15 +53,15 @@ func CreatePdf(c *gin.Context) {
 		return
 	}
 
-	// Initialize MinIO service
-	minioService, err := services.NewMinioService()
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to initialize MinIO service"})
+	// Get storage service from context
+	store := middleware.GetStorage(c.Request.Context())
+	if store == nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Storage service not available"})
 		return
 	}
 
-	// Upload the document to MinIO using base64 data
-	documentURL, err := minioService.UploadBase64(c.Request.Context(), req.DocumentData, "documents")
+	// Upload the document using the storage service
+	documentURL, err := store.UploadBase64(c.Request.Context(), req.DocumentData, "documents")
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to upload document: " + err.Error()})
 		return
@@ -75,7 +75,7 @@ func CreatePdf(c *gin.Context) {
 
 	if err := config.DB.Create(&pdf).Error; err != nil {
 		// Attempt to delete the uploaded document if database operation fails
-		_ = minioService.DeleteFile(c.Request.Context(), minioService.ExtractObjectName(documentURL))
+		_ = store.DeleteFile(c.Request.Context(), store.ExtractObjectName(documentURL))
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create PDF"})
 		return
 	}
@@ -94,18 +94,18 @@ func DeletePdf(c *gin.Context) {
 		return
 	}
 
-	// Initialize MinIO service
-	minioService, err := services.NewMinioService()
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to initialize MinIO service"})
+	// Get storage service from context
+	store := middleware.GetStorage(c.Request.Context())
+	if store == nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Storage service not available"})
 		return
 	}
 
-	// Delete the document from MinIO if it exists
+	// Delete the document if it exists
 	if pdf.DocumentUrl != "" {
-		objectName := minioService.ExtractObjectName(pdf.DocumentUrl)
+		objectName := store.ExtractObjectName(pdf.DocumentUrl)
 		if objectName != "" {
-			_ = minioService.DeleteFile(c.Request.Context(), objectName)
+			_ = store.DeleteFile(c.Request.Context(), objectName)
 		}
 	}
 

@@ -1,38 +1,10 @@
-import { useEffect } from 'react';
-import logo_dark from '@/assets/icons/logo_dark.svg';
-import fb_icon from '@/assets/icons/icon_facebook.svg';
-import inst_icon from '@/assets/icons/icon_instagram.svg';
 import { useTranslation } from 'react-i18next';
-import { useAppDispatch } from '@/store/hook';
-import { fetchPdfs } from '@/store/slices/pdfSlice';
-
-const publicDocuments = [
-  {
-    id: '123',
-    title: 'Правила Користування Сайтом',
-    url: '/documents/правила-користування-сайтом.pdf'
-  },
-  {
-    id: '456',
-    title: 'Політика Конфіденційності',
-    url: '/documents/політика-конфіденційності.pdf'
-  }
-];
+import logoDark from '@/assets/icons/logo_dark.svg';
+import fbIcon from '@/assets/icons/icon_facebook.svg';
+import instIcon from '@/assets/icons/icon_instagram.svg';
 
 const Footer = () => {
-  const { t, i18n } = useTranslation();
-  const language = i18n.language;
-  const dispatch = useAppDispatch();
-
-  const translateTitle = (title: string) => {
-    if (title === 'Правила Користування Сайтом') {
-      return 'Terms of Use';
-    }
-    if (title === 'Політика Конфіденційності') {
-      return 'Privacy Policy';
-    }
-    return title;
-  };
+  const { t } = useTranslation();
 
   const anchorLinks = [
     { title: t('footer:anchor_links.about_us'), href: '#about-us' },
@@ -42,24 +14,14 @@ const Footer = () => {
     { title: t('footer:anchor_links.partners'), href: '#partners' }
   ];
 
-  useEffect(() => {
-    dispatch(fetchPdfs())
-      .unwrap()
-      .then(() => {
-        return [];
-      })
-      .catch((error) => alert(error));
-  }, [dispatch]);
-
   return (
-    <footer className="mx-auto pb-[1.125rem] pt-8  md:pb-10 md:pt-16">
-      <div className="container mx-auto  flex flex-col px-5 md:px-12  lg:px-[7.5rem]">
+    <footer className="mx-auto pb-[1.125rem] pt-8 md:pb-10 md:pt-16">
+      <div className="container mx-auto flex flex-col px-5 md:px-12 lg:px-[7.5rem]">
         {/* Mobile */}
-        <ul className="flex flex-col  gap-4 md:hidden">
+        <ul className="flex flex-col gap-4 md:hidden">
           {/* logo */}
           <li>
-            {' '}
-            <img src={logo_dark} width={135} height={67} alt="logo" />
+            <img src={logoDark} width={135} height={67} alt="logo" />
           </li>
           {/* working hours */}
           <li>
@@ -155,11 +117,11 @@ const Footer = () => {
                   rel="noopener noreferrer"
                 >
                   <img
-                    src={fb_icon}
+                    src={fbIcon}
                     alt="facebook link icon"
                     width={32}
                     height={32}
-                  />{' '}
+                  />
                 </a>
               </li>
               <li>
@@ -169,11 +131,11 @@ const Footer = () => {
                   rel="noopener noreferrer"
                 >
                   <img
-                    src={inst_icon}
+                    src={instIcon}
                     alt="instagram link icon"
                     width={32}
                     height={32}
-                  />{' '}
+                  />
                 </a>
               </li>
             </ul>
@@ -186,7 +148,7 @@ const Footer = () => {
           {/* first col tablet */}
           <li className="flex flex-col lg:hidden">
             <img
-              src={logo_dark}
+              src={logoDark}
               width={135}
               height={67}
               alt="logo"
@@ -211,7 +173,7 @@ const Footer = () => {
           </li>
           <li className="hidden flex-col lg:flex">
             <img
-              src={logo_dark}
+              src={logoDark}
               width={135}
               height={67}
               alt="logo"
@@ -300,7 +262,7 @@ const Footer = () => {
                       rel="noopener noreferrer"
                     >
                       <img
-                        src={fb_icon}
+                        src={fbIcon}
                         alt="facebook link icon"
                         width={32}
                         height={32}
@@ -314,7 +276,7 @@ const Footer = () => {
                       rel="noopener noreferrer"
                     >
                       <img
-                        src={inst_icon}
+                        src={instIcon}
                         alt="instagram link icon"
                         width={32}
                         height={32}
@@ -401,7 +363,7 @@ const Footer = () => {
                   rel="noopener noreferrer"
                 >
                   <img
-                    src={fb_icon}
+                    src={fbIcon}
                     alt="facebook link icon"
                     width={32}
                     height={32}
@@ -415,7 +377,7 @@ const Footer = () => {
                   rel="noopener noreferrer"
                 >
                   <img
-                    src={inst_icon}
+                    src={instIcon}
                     alt="instagram link icon"
                     width={32}
                     height={32}

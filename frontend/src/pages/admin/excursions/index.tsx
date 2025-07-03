@@ -5,7 +5,6 @@ import Pen from '@/components/icons/Pen';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import AddIcon from '@/components/icons/AddIcon';
-import { createImgUrl } from '@/utils/createFileUrl';
 import { useAppDispatch, useAppSelector } from '@/store/hook';
 import {
   fetchExcursion,
@@ -38,7 +37,8 @@ const Excursions = () => {
       dispatch(removeExcursion(currentId));
       setShowConfirm(false);
       dispatch(openAlert(deleteSuccessResponseMessage('екскурсію')));
-    } catch (error: any) {
+    } catch (error: unknown) {
+      console.error('Failed to delete excursion:', error);
       dispatch(openAlert(deleteErrorResponseMessage('екскурсію')));
     }
   };
@@ -60,7 +60,7 @@ const Excursions = () => {
         <div className="grid grid-cols-2 gap-5">
           {excursions.map((excursion) => (
             <div
-              key={excursion.id}
+              key={excursion.ID}
               className="relative h-[180px] w-[288px] text-left"
             >
               <img
@@ -75,13 +75,13 @@ const Excursions = () => {
                 <button
                   className="rounded-full p-[8px] text-xl text-white transition-all hover:text-error"
                   onClick={() => {
-                    setShowConfirm(true), setCurrentId(excursion.id);
+                    setShowConfirm(true), setCurrentId(excursion.ID);
                   }}
                 >
                   <Bucket />
                 </button>
                 <button className="rounded-full p-2 text-xl text-white transition-all hover:text-accent">
-                  <Link to={`/admin/excursions/edit/${excursion.id}`}>
+                  <Link to={`/admin/excursions/edit/${excursion.ID}`}>
                     <Pen />
                   </Link>
                 </button>

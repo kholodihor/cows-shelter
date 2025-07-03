@@ -6,8 +6,8 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/kholodihor/cows-shelter-backend/config"
+	"github.com/kholodihor/cows-shelter-backend/middleware"
 	"github.com/kholodihor/cows-shelter-backend/models"
-	"github.com/kholodihor/cows-shelter-backend/services"
 )
 
 // CreateExcursionRequest represents the JSON request body for creating an excursion
@@ -126,15 +126,15 @@ func CreateExcursion(c *gin.Context) {
 		return
 	}
 
-	// Initialize MinIO service
-	minioService, err := services.NewMinioService()
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to initialize MinIO service"})
+	// Get storage service from context
+	store := middleware.GetStorage(c.Request.Context())
+	if store == nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Storage service not available"})
 		return
 	}
 
-	// Upload the base64 image to MinIO
-	imageURL, err := minioService.UploadBase64(c.Request.Context(), req.ImageData, "excursions")
+	// Upload the base64 image using the storage service
+	imageURL, err := store.UploadBase64(c.Request.Context(), req.ImageData, "excursions")
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to upload image: " + err.Error()})
 		return
@@ -143,8 +143,8 @@ func CreateExcursion(c *gin.Context) {
 
 	// Save the excursion to the database
 	if err := config.DB.Create(&excursion).Error; err != nil {
-		// If database save fails, try to delete the uploaded image from MinIO
-		_ = minioService.DeleteFile(c.Request.Context(), imageURL)
+		// If database save fails, try to delete the uploaded image
+		_ = store.DeleteFile(c.Request.Context(), imageURL)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create excursion: " + err.Error()})
 		return
 	}
@@ -202,21 +202,17 @@ func UpdateExcursion(c *gin.Context) {
 		excursion.AmountOfPersons = req.AmountOfPersons
 	}
 
-	// Handle image upload if a new image is provided
+	// Handle image upload if new image data is provided
 	if req.ImageData != "" {
-		// Initialize MinIO service
-		minioService, err := services.NewMinioService()
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to initialize MinIO service"})
+		// Get storage service from context
+		store := middleware.GetStorage(c.Request.Context())
+		if store == nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Storage service not available"})
 			return
 		}
 
-		// Upload the new base64 image to MinIO
-		newImageURL, err := minioService.UploadBase64(
-			c.Request.Context(),
-			req.ImageData,
-			"excursions",
-		)
+		// Upload the new base64 image using the storage service
+		newImageURL, err := store.UploadBase64(c.Request.Context(), req.ImageData, "excursions")
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to upload new image: " + err.Error()})
 			return
@@ -224,9 +220,13 @@ func UpdateExcursion(c *gin.Context) {
 
 		// Delete the old image if it exists
 		if excursion.ImageUrl != "" {
-			_ = minioService.DeleteFile(c.Request.Context(), excursion.ImageUrl)
+			oldObjectName := store.ExtractObjectName(excursion.ImageUrl)
+			if oldObjectName != "" {
+				_ = store.DeleteFile(c.Request.Context(), oldObjectName)
+			}
 		}
 
+		// Update the image URL
 		excursion.ImageUrl = newImageURL
 	}
 
@@ -257,19 +257,19 @@ func DeleteExcursion(c *gin.Context) {
 		return
 	}
 
-	// Initialize MinIO service
-	minioService, err := services.NewMinioService()
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to initialize MinIO service"})
+	// Get storage service from context
+	store := middleware.GetStorage(c.Request.Context())
+	if store == nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Storage service not available"})
 		return
 	}
 
-	// Delete the image from MinIO if it exists
+	// Delete the image if it exists
 	if excursion.ImageUrl != "" {
 		// Extract the object name from the URL
-		objectName := minioService.ExtractObjectName(excursion.ImageUrl)
+		objectName := store.ExtractObjectName(excursion.ImageUrl)
 		if objectName != "" {
-			_ = minioService.DeleteFile(c.Request.Context(), objectName)
+			_ = store.DeleteFile(c.Request.Context(), objectName)
 		}
 	}
 

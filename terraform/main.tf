@@ -10,6 +10,9 @@ provider "aws" {
   }
 }
 
+# Get current AWS account ID
+data "aws_caller_identity" "current" {}
+
 # Create an S3 bucket for file uploads
 resource "aws_s3_bucket" "cows_shelter_uploads" {
   bucket = var.s3_bucket_name
@@ -47,6 +50,37 @@ resource "aws_s3_bucket_server_side_encryption_configuration" "cows_shelter_uplo
       sse_algorithm = "AES256"
     }
   }
+}
+
+# Add bucket policy to allow CloudFront access
+resource "aws_s3_bucket_policy" "cows_shelter_uploads_policy" {
+  bucket = aws_s3_bucket.cows_shelter_uploads.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Sid       = "AllowCloudFrontOAI"
+        Effect    = "Allow"
+        Principal = {
+          AWS = "arn:aws:iam::cloudfront:user/CloudFront Origin Access Identity ${module.frontend.cloudfront_oai_id}"
+        }
+        Action    = "s3:GetObject"
+        Resource  = "${aws_s3_bucket.cows_shelter_uploads.arn}/*"
+      },
+      {
+        Sid       = "AllowECSTaskRole"
+        Effect    = "Allow"
+        Principal = {
+          AWS = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/cows-shelter-ecs-task-role"
+        }
+        Action    = ["s3:GetObject", "s3:PutObject", "s3:DeleteObject", "s3:ListBucket"]
+        Resource  = ["${aws_s3_bucket.cows_shelter_uploads.arn}", "${aws_s3_bucket.cows_shelter_uploads.arn}/*"]
+      }
+    ]
+  })
+
+  depends_on = [module.frontend]
 }
 
 # Database resources are now managed by the backend module
@@ -122,10 +156,16 @@ module "backend" {
   environment  = var.environment
   project_name = var.project_name
   
-  # MinIO configuration
+  # S3 configuration
+  s3_bucket_name = aws_s3_bucket.cows_shelter_uploads.bucket
+  
+  # MinIO configuration (kept for backward compatibility)
   minio_endpoint   = "minio.${var.project_name}.com:9000"
   minio_access_key = "minioadmin"
   minio_secret_key = "minioadmin"
+  
+  # Public storage configuration
+  public_storage_url = var.public_storage_url
   
   # Pass other necessary variables to the backend module
   # db_username  = var.db_username
@@ -141,6 +181,8 @@ module "frontend" {
   environment         = var.environment
   project_name        = var.project_name
   frontend_bucket_name = "${var.project_name}-frontend-${var.environment}"
+  backend_alb_dns_name = module.backend.alb_dns_name
+  uploads_bucket_name = var.s3_bucket_name
   
   # If you have a domain name, uncomment and set these
   # domain_name       = "your-domain.com"

@@ -160,7 +160,7 @@ const Partners = () => {
           {partners && Array.isArray(partners) ? (
             partners.map((partner) => (
               <li
-                key={partner?.id}
+                key={partner?.ID}
                 className="flex flex-col   md:mb-6 md:w-[calc(50%-0.75rem)]"
               >
                 <a
@@ -197,7 +197,7 @@ const Partners = () => {
             <ul className="mb-5  flex gap-6 lg:mt-20">
               {partners && Array.isArray(partners) ? (
                 partners.map((partner) => (
-                  <li key={partner.id} className="flex justify-around">
+                  <li key={partner.ID} className="flex justify-around">
                     <a
                       href={partner.link}
                       target="_blank"

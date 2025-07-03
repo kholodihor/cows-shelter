@@ -10,7 +10,7 @@ import axiosInstance from '@/utils/axios';
 import { transformMinioUrlsInData } from '@/utils/minioUrlHelper';
 
 export type Image = {
-  id: string;
+  ID: string; // Note: Uppercase ID to match backend response
   image_url: string;
 };
 
@@ -108,9 +108,18 @@ export const removeImage = createAsyncThunk(
   }
 );
 
-// Note: These helper functions are now used in the thunks
-// They're kept here for reference and potential future use
-// Helper function to convert file to base64
+// Helper function to extract base64 data from a data URL
+const extractBase64Data = (dataUrl: string): string => {
+  // Handle data URL format: data:image/png;base64,iVBORw0KGgo...
+  const parts = dataUrl.split(',');
+  if (parts.length !== 2 || !parts[0].includes('base64')) {
+    throw new Error('Invalid data URL format');
+  }
+  // Return just the base64-encoded part
+  return parts[1];
+};
+
+// Helper function to convert file to base64 data URL
 const fileToBase64 = (file: File): Promise<string> => {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -139,12 +148,14 @@ export const addNewImage = createAsyncThunk(
         return rejectWithValue('Image size should be less than 5MB');
       }
 
-      // Convert file to base64
-      const imageData = await fileToBase64(file);
+      // Convert file to base64 data URL
+      const dataUrl = await fileToBase64(file);
+      // Extract just the base64 data part
+      const base64Data = extractBase64Data(dataUrl);
 
       // Send the post with base64-encoded image data
       const response = await axiosInstance.post<Image>('/gallery', {
-        image_data: imageData
+        image_data: base64Data
       });
 
       return response.data;
@@ -189,7 +200,7 @@ const gallerySlice = createSlice({
       })
       .addCase(removeImage.fulfilled, (state, action) => {
         state.images = state.images.filter(
-          (item) => item.id !== (action.meta.arg as string)
+          (item) => item.ID !== (action.meta.arg as string)
         );
       })
       .addCase(addNewImage.pending, (state) => {

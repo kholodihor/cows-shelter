@@ -121,19 +121,15 @@ func main() {
 
 	config.Connect()
 
-	// Initialize MinIO client
-	if err := config.InitMinio(); err != nil {
-		log.Printf("Warning: Failed to initialize MinIO client: %v\n", err)
-	} else {
-		log.Println("MinIO client initialized successfully")
-	}
+	// Initialize storage service based on configuration
+	log.Println("Using S3 storage service")
 
 	// Initialize storage service
 	storageService, err := config.NewStorageService()
 	if err != nil {
 		log.Printf("Warning: Failed to initialize storage service: %v\n", err)
 	} else {
-		log.Printf("Storage service initialized successfully (type: %s)", storageService)
+		log.Printf("Storage service initialized successfully")
 		// Add storage middleware only if storage service was initialized successfully
 		router.Use(middleware.GinStorageMiddleware(storageService))
 	}

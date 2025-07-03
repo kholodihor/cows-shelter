@@ -18,7 +18,6 @@ import {
   editSuccessResponseMessage,
   editErrorResponseMessage
 } from '@/utils/responseMessages';
-import { createImgUrl } from '@/utils/createFileUrl';
 
 const EditPartner = () => {
   const { id } = useParams();
@@ -46,7 +45,7 @@ const EditPartner = () => {
 
   useEffect(() => {
     if (!id) return;
-    const partnerData = partners.filter((partner: Partner) => partner.id == id);
+    const partnerData = partners.filter((partner: Partner) => partner.ID == id);
     if (!partnerData || partnerData.length === 0) return;
 
     setValue('name', partnerData[0].name);
@@ -77,8 +76,11 @@ const EditPartner = () => {
       setIsProcessing(false);
       dispatch(openAlert(editSuccessResponseMessage('партнера')));
       navigate(-1);
-    } catch (error) {
+    } catch (error: unknown) {
+      console.error('Failed to edit partner:', error);
       dispatch(openAlert(editErrorResponseMessage('партнера')));
+    } finally {
+      setIsProcessing(false);
     }
   };
   return (

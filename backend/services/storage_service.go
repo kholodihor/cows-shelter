@@ -27,21 +27,12 @@ type StorageService interface {
 type StorageType string
 
 const (
-	// StorageTypeMinio represents MinIO storage
-	StorageTypeMinio StorageType = "minio"
 	// StorageTypeS3 represents AWS S3 storage
 	StorageTypeS3 StorageType = "s3"
 )
 
 // NewStorageService creates a new storage service based on the configuration
 func NewStorageService(storageType StorageType) (StorageService, error) {
-	switch storageType {
-	case StorageTypeMinio:
-		return NewMinioService()
-	case StorageTypeS3:
-		return NewS3Service()
-	default:
-		// Default to S3
-		return NewS3Service()
-	}
+	// Always use S3 service
+	return NewS3Service()
 }

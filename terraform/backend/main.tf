@@ -244,24 +244,24 @@ resource "aws_ecs_task_definition" "app" {
           value = var.db_name
         },
         {
-          name  = "MINIO_ENDPOINT"
-          value = var.minio_endpoint
+          name  = "STORAGE_TYPE"
+          value = "s3"
         },
         {
-          name  = "MINIO_ACCESS_KEY"
-          value = var.minio_access_key
+          name  = "AWS_REGION"
+          value = var.aws_region
         },
         {
-          name  = "MINIO_SECRET_KEY"
-          value = var.minio_secret_key
-        },
-        {
-          name  = "MINIO_USE_SSL"
-          value = "true"
+          name  = "STORAGE_BUCKET"
+          value = var.s3_bucket_name
         },
         {
           name  = "GIN_MODE"
           value = "release"
+        },
+        {
+          name  = "PUBLIC_STORAGE_URL"
+          value = var.public_storage_url != "" ? var.public_storage_url : "https://${var.s3_bucket_name}.s3.${var.aws_region}.amazonaws.com"
         }
       ]
       logConfiguration = {
@@ -391,6 +391,36 @@ resource "aws_iam_role" "ecs_task_role" {
       },
     ]
   })
+}
+
+# S3 Access Policy for ECS Tasks
+resource "aws_iam_policy" "s3_access" {
+  name        = "${var.project_name}-s3-access"
+  description = "Policy to allow S3 access for ECS tasks"
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "s3:PutObject",
+          "s3:GetObject",
+          "s3:DeleteObject",
+          "s3:ListBucket"
+        ]
+        Resource = [
+          "arn:aws:s3:::${var.s3_bucket_name}",
+          "arn:aws:s3:::${var.s3_bucket_name}/*"
+        ]
+      }
+    ]
+  })
+}
+
+resource "aws_iam_role_policy_attachment" "ecs_task_s3_access" {
+  role       = aws_iam_role.ecs_task_role.name
+  policy_arn = aws_iam_policy.s3_access.arn
 }
 
 # CloudWatch Log Group

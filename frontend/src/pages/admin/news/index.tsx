@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom';
 import Bucket from '@/components/icons/Bucket';
 import Pen from '@/components/icons/Pen';
 import AddIcon from '@/components/icons/AddIcon';
-import { createImgUrl } from '@/utils/createFileUrl';
+
 import { useAppDispatch, useAppSelector } from '@/store/hook';
 import { fetchPosts, removePost } from '@/store/slices/newsSlice';
 import Loader from '@/components/admin/Loader';
@@ -32,12 +32,12 @@ const News = () => {
       dispatch(removePost(currentId));
       setShowConfirm(false);
       dispatch(openAlert(deleteSuccessResponseMessage('новину')));
-    } catch (error: any) {
+    } catch (error: unknown) {
+      console.error('Failed to delete news:', error);
       dispatch(openAlert(deleteErrorResponseMessage('новину')));
     }
   };
 
-  // console.log(createImgUrl(posts[0]?.image_url));
   console.log('POSTS:', posts);
 
   if (isLoading) return <Loader />;
@@ -56,7 +56,7 @@ const News = () => {
         </div>
         {posts.map((post) => (
           <div
-            key={`article-${post.id}`}
+            key={`article-${post.ID}`}
             className="relative h-[180px] w-[288px] text-left"
           >
             <img
@@ -71,13 +71,13 @@ const News = () => {
               <button
                 className="rounded-full p-[8px] text-xl text-white transition-all hover:text-error"
                 onClick={() => {
-                  setShowConfirm(true), setCurrentId(post.id);
+                  setShowConfirm(true), setCurrentId(post.ID);
                 }}
               >
                 <Bucket />
               </button>
               <button className="rounded-full p-2 text-xl text-white transition-all hover:text-accent">
-                <Link to={`/admin/news/edit/${post.id}`}>
+                <Link to={`/admin/news/edit/${post.ID}`}>
                   <Pen />
                 </Link>
               </button>
