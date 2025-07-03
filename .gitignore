@@ -100,3 +100,4 @@ dist/
 *.njsproj
 *.sln
 *.sw?
+.terraform/
