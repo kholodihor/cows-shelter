@@ -104,7 +104,7 @@ func CreatePartner(c *gin.Context) {
 	}
 
 	// Upload the logo using the storage service
-	imageURL, err := store.UploadBase64(c.Request.Context(), req.LogoData, "partners")
+	imageURL, err := store.UploadBase64(c.Request.Context(), req.LogoData, "", "partners")
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to upload logo: " + err.Error()})
 		return
@@ -183,7 +183,7 @@ func UpdatePartner(c *gin.Context) {
 		}
 
 		// Upload the new logo using the storage service
-		imageURL, err := store.UploadBase64(c.Request.Context(), req.LogoData, "partners")
+		imageURL, err := store.UploadBase64(c.Request.Context(), req.LogoData, "", "partners")
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to upload new logo: " + err.Error()})
 			return

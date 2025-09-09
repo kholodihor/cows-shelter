@@ -105,7 +105,7 @@ func CreateGallery(c *gin.Context) {
 	}
 
 	// Upload the base64 image using the storage service
-	imageURL, err := store.UploadBase64(c.Request.Context(), req.ImageData, "gallery")
+	imageURL, err := store.UploadBase64(c.Request.Context(), req.ImageData, "", "gallery")
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to upload image: " + err.Error()})
 		return
@@ -166,7 +166,7 @@ func UpdateGallery(c *gin.Context) {
 	// Check if a new image is being uploaded
 	if req.ImageData != "" {
 		// Upload the new base64 image using the storage service
-		newImageURL, err := store.UploadBase64(c.Request.Context(), req.ImageData, "gallery")
+		newImageURL, err := store.UploadBase64(c.Request.Context(), req.ImageData, "", "gallery")
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to upload new image: " + err.Error()})
 			return

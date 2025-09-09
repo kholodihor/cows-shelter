@@ -61,7 +61,7 @@ func CreatePdf(c *gin.Context) {
 	}
 
 	// Upload the document using the storage service
-	documentURL, err := store.UploadBase64(c.Request.Context(), req.DocumentData, "documents")
+	documentURL, err := store.UploadBase64(c.Request.Context(), req.DocumentData, "", "documents")
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to upload document: " + err.Error()})
 		return

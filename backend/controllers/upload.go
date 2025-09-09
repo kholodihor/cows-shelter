@@ -5,20 +5,23 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"github.com/kholodihor/cows-shelter-backend/services"
+	"github.com/kholodihor/cows-shelter-backend/storage"
 )
 
-var s3Service *services.S3Service
-
-func init() {
-	var err error
-	s3Service, err = services.NewS3Service()
-	if err != nil {
-		panic("Failed to initialize S3 service: " + err.Error())
-	}
-}
-
 func UploadImage(c *gin.Context) {
+	// Get storage service from middleware
+	storageService, exists := c.Get("storage")
+	if !exists {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Storage service not available"})
+		return
+	}
+
+	service, ok := storageService.(storage.Service)
+	if !ok {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Invalid storage service"})
+		return
+	}
+
 	// Parse the file from the request
 	file, err := c.FormFile("image")
 	if err != nil {
@@ -26,13 +29,13 @@ func UploadImage(c *gin.Context) {
 		return
 	}
 
-	// Upload the file to S3
-	imageURL, err := s3Service.UploadFile(context.Background(), file, "uploads")
+	// Upload the file using storage service
+	imageURL, err := service.UploadFile(context.Background(), file, "uploads")
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to upload file to S3: " + err.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to upload file: " + err.Error()})
 		return
 	}
 
-	// Return the S3 URL in the response
+	// Return the file URL in the response
 	c.JSON(http.StatusCreated, gin.H{"image_url": imageURL})
 }

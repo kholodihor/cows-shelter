@@ -134,7 +134,7 @@ func CreateExcursion(c *gin.Context) {
 	}
 
 	// Upload the base64 image using the storage service
-	imageURL, err := store.UploadBase64(c.Request.Context(), req.ImageData, "excursions")
+	imageURL, err := store.UploadBase64(c.Request.Context(), req.ImageData, "", "excursions")
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to upload image: " + err.Error()})
 		return
@@ -212,7 +212,7 @@ func UpdateExcursion(c *gin.Context) {
 		}
 
 		// Upload the new base64 image using the storage service
-		newImageURL, err := store.UploadBase64(c.Request.Context(), req.ImageData, "excursions")
+		newImageURL, err := store.UploadBase64(c.Request.Context(), req.ImageData, "", "excursions")
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to upload new image: " + err.Error()})
 			return

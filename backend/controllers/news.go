@@ -113,7 +113,7 @@ func CreateNews(c *gin.Context) {
 		}
 
 		// Upload the base64 image using the storage service
-		imageURL, err := store.UploadBase64(c.Request.Context(), req.ImageData, "news")
+		imageURL, err := store.UploadBase64(c.Request.Context(), req.ImageData, "", "news")
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to upload image: " + err.Error()})
 			return
@@ -199,7 +199,7 @@ func UpdateNews(c *gin.Context) {
 		}
 
 		// Upload the new base64 image using the storage service
-		newImageURL, err := store.UploadBase64(c.Request.Context(), req.ImageData, "news")
+		newImageURL, err := store.UploadBase64(c.Request.Context(), req.ImageData, "", "news")
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to upload new image: " + err.Error()})
 			return

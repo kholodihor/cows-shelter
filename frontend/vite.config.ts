@@ -15,9 +15,9 @@ export default defineConfig({
     strictPort: true,
     proxy: {
       '/api': {
-        target: 'http://localhost:8080',
+        target: 'https://backend-fragrant-star-8901.fly.dev',
         changeOrigin: true,
-        secure: false,
+        secure: true,
         rewrite: (path) => path,
         configure: (proxy, _options) => {
           proxy.on('error', (err, _req, _res) => {

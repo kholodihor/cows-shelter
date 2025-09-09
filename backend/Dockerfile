@@ -21,7 +21,7 @@ COPY . .
 
 # Update go.mod and go.sum and build the application
 RUN go mod tidy && \
-    CGO_ENABLED=0 GOOS=linux go build -o /usr/local/bin/app .
+    CGO_ENABLED=0 GOOS=linux go build -o /app/app .
 
 # Make scripts executable
 RUN chmod +x /app/entrypoint.sh && \
@@ -34,7 +34,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     dos2unix \
     && dos2unix /app/entrypoint.sh \
     && chmod +x /app/entrypoint.sh \
-    && chmod +x /usr/local/bin/app \
+    && chmod +x /app/app \
     && rm -rf /var/lib/apt/lists/*
 
 # Expose port 8080

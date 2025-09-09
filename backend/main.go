@@ -121,15 +121,13 @@ func main() {
 
 	config.Connect()
 
-	// Initialize storage service based on configuration
-	log.Println("Using S3 storage service")
-
 	// Initialize storage service
-	storageService, err := config.NewStorageService()
+	storageConfig := config.GetConfig()
+	storageService, err := config.GetStorageService(storageConfig)
 	if err != nil {
 		log.Printf("Warning: Failed to initialize storage service: %v\n", err)
 	} else {
-		log.Printf("Storage service initialized successfully")
+		log.Printf("Storage service initialized successfully (type: %s)", storageConfig.Type)
 		// Add storage middleware only if storage service was initialized successfully
 		router.Use(middleware.GinStorageMiddleware(storageService))
 	}

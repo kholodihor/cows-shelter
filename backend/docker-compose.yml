@@ -14,22 +14,27 @@ services:
       - DB_USER=postgres
       - DB_PASSWORD=postgres
       - DB_NAME=cows_shelter
-      # Admin user configuration
-      - ADMIN_EMAIL=${ADMIN_EMAIL:-admin@example.com}
-      - ADMIN_PASSWORD=${ADMIN_PASSWORD:-ChangeMe123!}
-      # MinIO configuration
+      # Storage configuration
+      - STORAGE_TYPE=minio
       - MINIO_ENDPOINT=minio:9000
-      - MINIO_ACCESS_KEY=${MINIO_ACCESS_KEY:-minioadmin}
-      - MINIO_SECRET_KEY=${MINIO_SECRET_KEY:-minioadmin}
-      - MINIO_BUCKET=${MINIO_BUCKET:-cows-shelter}
+      - MINIO_ACCESS_KEY=minioadmin
+      - MINIO_SECRET_KEY=minioadmin123
       - MINIO_USE_SSL=false
+      - MINIO_BUCKET_NAME=cows-shelter
+      # JWT Secret
+      - JWT_SECRET=your_jwt_secret_here_make_it_very_long_and_secure
+      # Admin user configuration (for automatic creation)
+      - ADMIN_EMAIL=admin@cows-shelter.com
+      - ADMIN_PASSWORD=ChangeMe123!
       # Application settings
+      - PORT=8080
+      - ENV=development
       - GIN_MODE=debug
     depends_on:
-      - postgres
-      - minio
-    volumes:
-      - .:/app
+      postgres:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
     container_name: cows-shelter-api
     healthcheck:
       test: ["CMD", "wget", "--spider", "-q", "http://localhost:8080/health"]
@@ -50,6 +55,11 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
     container_name: cows-shelter-db
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   minio:
     image: minio/minio:latest
@@ -57,8 +67,8 @@ services:
       - "9000:9000"  # API
       - "9001:9001"  # Console
     environment:
-      - MINIO_ROOT_USER=${MINIO_ACCESS_KEY:-minioadmin}
-      - MINIO_ROOT_PASSWORD=${MINIO_SECRET_KEY:-minioadmin}
+      - MINIO_ROOT_USER=minioadmin
+      - MINIO_ROOT_PASSWORD=minioadmin123
     volumes:
       - minio_data:/data
     command: server /data --console-address ":9001"
@@ -68,6 +78,21 @@ services:
       timeout: 20s
       retries: 3
     container_name: cows-shelter-minio
+
+  # MinIO Client for bucket creation
+  minio-client:
+    image: minio/mc:latest
+    depends_on:
+      - minio
+    entrypoint: >
+      /bin/sh -c "
+      sleep 10;
+      /usr/bin/mc alias set myminio http://minio:9000 minioadmin minioadmin123;
+      /usr/bin/mc mb myminio/cows-shelter --ignore-existing;
+      /usr/bin/mc policy set public myminio/cows-shelter;
+      exit 0;
+      "
+    container_name: cows-shelter-minio-client
 
 volumes:
   postgres_data:
