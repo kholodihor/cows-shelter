@@ -1,22 +1,26 @@
 # Cows Shelter Application
 
-A full-stack web application for managing a cow shelter, built with React/Vite frontend and Go backend, deployed on AWS with Terraform.
+A full-stack web application for managing a cow shelter, built with React/Vite frontend and Go backend, deployed on Fly.io with Cloudinary for image storage.
+
+## 🚀 Live Application
+
+- **Backend API**: https://backend-fragrant-star-8901.fly.dev/
+- **Database**: Neon PostgreSQL (Serverless)
+- **Image Storage**: Cloudinary CDN
 
 ## Project Structure
 
 - `/backend` - Go backend service (REST API)
 - `/frontend` - React/Vite frontend application
-- `/terraform` - Infrastructure as Code (AWS resources)
 
 ## Prerequisites
 
-- Docker and Docker Compose (for local development)
-- Node.js 16+ and npm/yarn (for frontend development)
+- Node.js 18+ and npm (for frontend development)
 - Go 1.21+ (for backend development)
-- AWS Account with appropriate permissions
-- Terraform 1.0+ (for infrastructure deployment)
+- Fly.io CLI (for deployment)
+- Cloudinary account (for image storage)
 
-## Local Development
+## 🛠️ Local Development
 
 ### Backend Setup
 
@@ -26,11 +30,34 @@ A full-stack web application for managing a cow shelter, built with React/Vite f
    cp .env.example .env
    ```
 
-2. Update the `.env` file with your local configuration.
-
-3. Start the backend service:
+2. Update the `.env` file with your configuration:
    ```bash
-   docker-compose up -d
+   # Database Configuration (Neon PostgreSQL)
+   DATABASE_URL=your_neon_database_url
+   
+   # Cloudinary Configuration
+   CLOUDINARY_CLOUD_NAME=your_cloud_name
+   CLOUDINARY_API_KEY=your_api_key
+   CLOUDINARY_API_SECRET=your_api_secret
+   STORAGE_TYPE=cloudinary
+   
+   # JWT Secret (generate a secure secret)
+   JWT_SECRET=your_jwt_secret_here
+   
+   # Admin Configuration
+   ADMIN_EMAIL=admin@cows-shelter.com
+   ADMIN_PASSWORD=your_secure_password
+   
+   # App Configuration
+   PORT=8080
+   ENV=development
+   GIN_MODE=debug
+   ```
+
+3. Run the backend locally:
+   ```bash
+   go mod tidy
+   go run main.go
    ```
 
 ### Frontend Setup
@@ -41,9 +68,9 @@ A full-stack web application for managing a cow shelter, built with React/Vite f
    npm install
    ```
 
-2. Copy the example environment file:
-   ```bash
-   cp .env.example .env.local
+2. The frontend is configured to use the deployed backend at:
+   ```
+   VITE_API_URL=https://backend-fragrant-star-8901.fly.dev
    ```
 
 3. Start the development server:
@@ -51,91 +78,78 @@ A full-stack web application for managing a cow shelter, built with React/Vite f
    npm run dev
    ```
 
-## Environment Variables
+## 🌐 Deployment
 
-### Backend (`.env`)
+### Backend Deployment (Fly.io)
 
-```
-# Database Configuration
-DB_HOST=localhost
-DB_PORT=5432
-DB_USER=postgres
-DB_PASSWORD=your_db_password
-DB_NAME=cows_shelter
+The backend is deployed on Fly.io with the following configuration:
 
-# AWS Configuration
-AWS_REGION=eu-north-1
-AWS_ACCESS_KEY_ID=your_aws_access_key
-AWS_SECRET_ACCESS_KEY=your_aws_secret_key
-S3_BUCKET_NAME=cows-shelter-uploads
+1. **Database**: Neon PostgreSQL (serverless, auto-scaling)
+2. **Image Storage**: Cloudinary (CDN with global distribution)
+3. **Hosting**: Fly.io (global edge deployment)
 
-# JWT Secret (generate a secure secret)
-JWT_SECRET=your_jwt_secret_here
+To deploy updates:
 
-# App Configuration
-PORT=8080
-ENV=development
+```bash
+cd backend
+flyctl deploy --app backend-fragrant-star-8901
 ```
 
-### Frontend (`.env.local`)
+### Environment Variables (Production)
 
+The following secrets are configured in Fly.io:
+
+```bash
+flyctl secrets set \
+  DATABASE_URL="your_neon_database_url" \
+  CLOUDINARY_CLOUD_NAME="your_cloud_name" \
+  CLOUDINARY_API_KEY="your_api_key" \
+  CLOUDINARY_API_SECRET="your_api_secret" \
+  STORAGE_TYPE="cloudinary" \
+  JWT_SECRET="your_jwt_secret" \
+  ADMIN_EMAIL="admin@cows-shelter.com" \
+  ADMIN_PASSWORD="your_secure_password" \
+  --app backend-fragrant-star-8901
 ```
-VITE_API_URL=http://localhost:8080/api
-VITE_ENV=development
-```
-
-## Deployment
-
-### Infrastructure
-
-1. Navigate to the Terraform directory:
-   ```bash
-   cd terraform
-   ```
-
-2. Initialize Terraform:
-   ```bash
-   terraform init
-   ```
-
-3. Review the execution plan:
-   ```bash
-   terraform plan
-   ```
-
-4. Apply the configuration:
-   ```bash
-   terraform apply
-   ```
-
-### Backend Deployment
-
-1. Build and push the Docker image:
-   ```bash
-   cd backend
-   docker build -t your-ecr-repo/cows-shelter-backend:latest .
-   docker push your-ecr-repo/cows-shelter-backend:latest
-   ```
-
-2. Update the ECS service with the new task definition.
 
 ### Frontend Deployment
 
-1. Build the production bundle:
-   ```bash
-   cd frontend
-   npm run build
-   ```
+The frontend can be deployed to any static hosting service (Vercel, Netlify, etc.) and is configured to connect to the production backend.
 
-2. Sync with S3:
-   ```bash
-   aws s3 sync dist/ s3://your-s3-bucket-name --delete
-   ```
+## 🏗️ Architecture
 
-3. Invalidate CloudFront cache:
-   ```bash
-   aws cloudfront create-invalidation --distribution-id YOUR_DISTRIBUTION_ID --paths "/*"
-   ```
+- **Frontend**: React + TypeScript + Vite + Tailwind CSS
+- **Backend**: Go + Gin + GORM
+- **Database**: PostgreSQL (Neon - serverless)
+- **File Storage**: Cloudinary (images, documents)
+- **Deployment**: Fly.io (backend), Static hosting (frontend)
+- **Authentication**: JWT tokens
+
+## 📝 API Endpoints
+
+- `GET /api/health` - Health check
+- `POST /api/login` - Admin authentication
+- `GET /api/news` - Get news articles
+- `POST /api/news` - Create news article
+- `GET /api/gallery` - Get gallery images
+- `POST /api/gallery` - Upload gallery image
+- `GET /api/excursions` - Get excursions
+- `POST /api/excursions` - Create excursion
+- `GET /api/partners` - Get partners
+- `POST /api/partners` - Create partner
+- `GET /api/contacts` - Get contact information
+- `GET /api/reviews` - Get reviews
+
+## 🔧 Features
+
+- ✅ Multilingual support (Ukrainian/English)
+- ✅ Admin panel for content management
+- ✅ Image upload with Cloudinary integration
+- ✅ Responsive design
+- ✅ SEO optimized
+- ✅ Global CDN for fast image delivery
+- ✅ Serverless database with auto-scaling
+- ✅ Production-ready deployment
 
 ## Contributing
 
