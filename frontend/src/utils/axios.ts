@@ -6,9 +6,9 @@ import axios, {
 import { store } from '@/store';
 import { openAlert } from '@/store/slices/responseAlertSlice';
 
-// Use the Vite proxy in development
+// Use environment variable for API URL, fallback to proxy in development
 const instance = axios.create({
-  baseURL: '/api',
+  baseURL: import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/api` : '/api',
   headers: {
     'Content-Type': 'application/json',
     Accept: 'application/json'
