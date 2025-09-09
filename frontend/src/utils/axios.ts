@@ -6,14 +6,20 @@ import axios, {
 import { store } from '@/store';
 import { openAlert } from '@/store/slices/responseAlertSlice';
 
-// Use environment variable for API URL, fallback to proxy in development
+// Use environment variable for API URL, fallback to localhost backend
+const baseURL = import.meta.env.VITE_API_URL || 'https://backend-fragrant-star-8901.fly.dev/api';
+
+console.log('Environment:', import.meta.env.MODE);
+console.log('VITE_API_URL:', import.meta.env.VITE_API_URL);
+console.log('Using baseURL:', baseURL);
+
 const instance = axios.create({
-  baseURL: import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/api` : '/api',
+  baseURL,
   headers: {
     'Content-Type': 'application/json',
     Accept: 'application/json'
   },
-  withCredentials: true,
+  withCredentials: false, // Disable credentials for cross-origin requests
   timeout: 10000
 });
 

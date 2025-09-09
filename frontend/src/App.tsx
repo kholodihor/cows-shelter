@@ -1,6 +1,5 @@
 import { Route, Routes, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
-import ProtectedRoute from '@/components/ProtectedRoute';
 import HomePage from './pages/HomePage';
 import AdminPage from './pages/admin';
 import News from './pages/admin/news';
@@ -40,31 +39,29 @@ const AppRoutes = () => {
       <Route path="register-user-only-for-developers" element={<Register />} />
       <Route path="reset/:token" element={<ResetPassword />} />
 
-      {/* Protected admin routes */}
-      <Route element={<ProtectedRoute />}>
-        <Route path="admin/*" element={<AdminPage />}>
-          <Route index element={<News />} />
-          <Route path="news/add" element={<AddNews />} />
-          <Route path="news/edit/:id" element={<EditNews />} />
-          <Route path="excursions" element={<Excursions />} />
-          <Route path="excursions/add" element={<AddExcursion />} />
-          <Route path="excursions/edit/:id" element={<EditExcursion />} />
-          <Route path="reviews" element={<Reviews />} />
-          <Route path="reviews/add" element={<AddReviews />} />
-          <Route path="reviews/edit/:id" element={<EditReviews />} />
-          <Route path="gallery" element={<Gallery />} />
-          <Route path="partners" element={<Partners />} />
-          <Route path="partners/add" element={<AddPartner />} />
-          <Route path="partners/edit/:id" element={<EditPartner />} />
-          <Route path="contacts" element={<Contacts />} />
-          <Route path="contacts/add" element={<AddContacts />} />
-          <Route path="newpassword" element={<NewPassword />} />
-        </Route>
+
+      <Route path="admin/*" element={<AdminPage />}>
+        <Route index element={<News />} />
+        <Route path="news/add" element={<AddNews />} />
+        <Route path="news/edit/:id" element={<EditNews />} />
+        <Route path="excursions" element={<Excursions />} />
+        <Route path="excursions/add" element={<AddExcursion />} />
+        <Route path="excursions/edit/:id" element={<EditExcursion />} />
+        <Route path="reviews" element={<Reviews />} />
+        <Route path="reviews/add" element={<AddReviews />} />
+        <Route path="reviews/edit/:id" element={<EditReviews />} />
+        <Route path="gallery" element={<Gallery />} />
+        <Route path="partners" element={<Partners />} />
+        <Route path="partners/add" element={<AddPartner />} />
+        <Route path="partners/edit/:id" element={<EditPartner />} />
+        <Route path="contacts" element={<Contacts />} />
+        <Route path="contacts/add" element={<AddContacts />} />
+        <Route path="newpassword" element={<NewPassword />} />
       </Route>
 
       {/* Catch all other routes */}
       <Route path="*" element={<Navigate to="/" replace />} />
-    </Routes>
+    </Routes >
   );
 };
 

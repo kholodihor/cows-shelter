@@ -135,13 +135,30 @@ func main() {
 	// Add CORS middleware
 	router.Use(func(c *gin.Context) {
 		origin := c.Request.Header.Get("Origin")
-		if origin == "" {
-			origin = "*"
+		
+		// Allow specific origins
+		allowedOrigins := []string{
+			"http://localhost:5173",
+			"https://cows-shelter.vercel.app",
 		}
-		c.Writer.Header().Set("Access-Control-Allow-Origin", origin)
+		
+		originAllowed := false
+		for _, allowedOrigin := range allowedOrigins {
+			if origin == allowedOrigin {
+				originAllowed = true
+				break
+			}
+		}
+		
+		if originAllowed {
+			c.Writer.Header().Set("Access-Control-Allow-Origin", origin)
+		} else {
+			c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
+		}
+		
 		c.Writer.Header().Set("Access-Control-Allow-Credentials", "true")
-		c.Writer.Header().Set("Access-Control-Allow-Headers", "*")
-		c.Writer.Header().Set("Access-Control-Allow-Methods", "*")
+		c.Writer.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Requested-With")
+		c.Writer.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
 
 		// Handle preflight requests
 		if c.Request.Method == "OPTIONS" {
