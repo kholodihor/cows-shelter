@@ -4,7 +4,7 @@ A full-stack web application for managing a cow shelter, built with React/Vite f
 
 ## 🚀 Live Application
 
-- **Backend API**: https://backend-fragrant-star-8901.fly.dev/
+- **Backend API**: Fly.io
 - **Database**: Neon PostgreSQL (Serverless)
 - **Image Storage**: Cloudinary CDN
 
